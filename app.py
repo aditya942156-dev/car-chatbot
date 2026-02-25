@@ -74,4 +74,5 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
             st.markdown(answer)
+
             st.session_state.car_messages.append({"role": "assistant", "content": answer})
