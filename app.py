@@ -1,225 +1,195 @@
 import streamlit as st
 import requests
+import re
 from urllib.parse import quote
 
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(
-    page_title="AI Car Consultant", 
-    page_icon="🚗",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
 
 # -------------------------------------------------
-# 2. NEW CAR BACKGROUND + UI STYLING  (MOBILE + DESKTOP)
+# 2. SECRETS
 # -------------------------------------------------
-st.markdown("""
-    <style>
-    /* 🔹 NEW BACKGROUND IMAGE (Luxury Car Showroom) */
-    .stApp {
-        background: linear-gradient(rgba(10,12,15,0.85), rgba(10,12,15,0.85)),
-                    url("https://images.unsplash.com/photo-1617814076367-b759c7d7e739?auto=format&fit=crop&q=80&w=2000");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    /* 🔹 GLASSMORPHISM CHAT BUBBLES */
-    .stChatMessage {
-        background: rgba(255, 255, 255, 0.07) !important;
-        backdrop-filter: blur(12px);
-        border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.12);
-        color: #ffffff !important;
-        padding: 18px;
-        margin-bottom: 16px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-
-    /* 🔹 TEXT COLORS */
-    h1, h2, h3, p, li, .stMarkdown, .stCaption {
-        color: #ffffff !important;
-        font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-    }
-
-    /* 🔹 IMAGE CAPTIONS */
-    .stImage > caption {
-        color: #e0e0e0 !important;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    /* 🔹 CHAT INPUT FIELD */
-    .stChatInput {
-        background: rgba(255,255,255,0.08) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        border-radius: 16px;
-        color: white !important;
-        padding: 12px 16px;
-    }
-
-    /* 🔹 SPINNER COLOR */
-    .stSpinner > div > div {
-        color: #4CAF50 !important;
-    }
-
-    /* 🔹 FOOTER */
-    .footer {
-        text-align: center;
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.7);
-        font-size: 0.85rem;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# -------------------------------------------------
-# 3. LOAD SECRETS
-# -------------------------------------------------
-GROQ_KEY = st.secrets.get("GROQ_KEY")
-UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY")   # Optional but recommended
+GROQ_KEY   = st.secrets.get("GROQ_KEY", None)
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)   # <-- free Unsplash access key
 
 if not GROQ_KEY:
-    st.error("❌ **MISSING GROQ_KEY** in Streamlit Secrets! Add it to continue.")
+    st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
+if not UNSPLASH_KEY:
+    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a tiny static map.")
+    # You can still run the app; images just won’t appear unless they’re in the fallback map.
 
 # -------------------------------------------------
-# 4. CAR MARKET CONTEXT (2024‑2025)
+# 3. CAR CONTEXT (simulated live market data)
 # -------------------------------------------------
 def get_car_context():
     return """
-    2024‑2025 Automotive Market Snapshot:
-    • EVs: Tesla Model 3 Highland (333 mi), Hyundai Ioniq 6 (361 mi), BYD Seal (323 mi)
-    • Hybrids: Toyota RAV4 Hybrid (41 MPG), Honda CR‑V Hybrid (40 MPG)
-    • Luxury: BMW i7, Mercedes EQS, Audi e‑tron GT
-    • Budget: Toyota Corolla, Honda Civic, Hyundai Elantra
-    Trend: EV prices ↓12%, Hybrid sales ↑28%. Fuel efficiency is #1 buyer priority.
+    Current Trending Cars (2024-2025):
+    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal.
+    - SUVs: Toyota RAV4 Hybrid, Honda CR-V, Kia Sportage.
+    - Luxury: BMW i7, Mercedes EQS, Audi e-tron GT.
+    - Budget: Toyota Corolla, Honda Civic, Hyundai Elantra.
+    Market Trend: Heavy shift towards Hybrids and EVs. Prices are stabilizing.
     """
 
 # -------------------------------------------------
-# 5. CAR IMAGE HANDLING
+# 4. GROQ API CALL
 # -------------------------------------------------
-FALLBACK_IMAGES = {
-    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
-    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
-    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
-    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
-    "toyota corolla": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2020_Toyota_Corolla_SE.jpg/800px-2020_Toyota_Corolla_SE.jpg"
-}
-
-def extract_car_models(text: str) -> list:
-    """Find car models mentioned in the AI response"""
-    text_lower = text.lower()
-    found = []
-    for model in FALLBACK_IMAGES.keys():
-        if model in text_lower and model not in found:
-            found.append(model)
-    return found
-
-def get_car_image_url(model: str) -> str:
-    """Fetch image from Unsplash (if key exists) OR use fallback"""
-    if UNSPLASH_KEY:
-        try:
-            url = f"https://api.unsplash.com/search/photos?query={quote(f'2024 {model} car')}&per_page=1&client_id={UNSPLASH_KEY}"
-            resp = requests.get(url, timeout=8)
-            if resp.status_code == 200:
-                data = resp.json()
-                if data.get("results"):
-                    return data["results"][0]["urls"]["regular"]
-        except Exception:
-            pass
-    # Fallback to Wikipedia image
-    return FALLBACK_IMAGES.get(model, "https://via.placeholder.com/400x225?text=No+Image")
-
-def show_car_images(models: list):
-    """Display images in a responsive grid"""
-    if not models:
-        return
-    cols = st.columns(min(3, len(models)))  # Max 3 columns
-    for idx, model in enumerate(models):
-        with cols[idx % 3]:
-            img_url = get_car_image_url(model)
-            st.image(img_url, caption=model.title(), use_column_width=True)
-
-# -------------------------------------------------
-# 6. GROQ AI CHATBOT
-# -------------------------------------------------
-def groq_chat(prompt: str, context: str) -> str:
+def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
     payload = {
         "model": "llama-3.1-8b-instant",
         "messages": [
-            {"role": "system", "content": 
-             "You are a senior automotive consultant (15+ years experience). Provide detailed, unbiased advice with pros/cons, specs, pricing, and market context. Use bullet points for readability."},
-            {"role": "user", "content": f"MARKET DATA: {context}\n\nUSER QUESTION: {prompt}"}
+            {"role": "system", "content":
+                "You are a professional Car Expert. You know everything about engine specs, mileage, EV range, and car comparisons. "
+                "Be helpful and give pros/cons."},
+            {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
         ],
-        "temperature": 0.6,
-        "max_tokens": 1200
+        "temperature": 0.7,
+    }
+
+    resp = requests.post(url, headers=headers, json=payload)
+    if resp.status_code == 200:
+        return resp.json()["choices"][0]["message"]["content"]
+    return f"Error: {resp.text}"
+
+# -------------------------------------------------
+# 5. HELPERS – extract car names & fetch images
+# -------------------------------------------------
+# A very small static fallback (used only when Unsplash fails or the key is missing)
+FALLBACK_IMAGE_MAP = {
+    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
+    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
+    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
+    "honda cr-v": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
+    "kia sportage": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
+    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
+    "mercedes eqs": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
+    "audi e-tron gt": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
+    "toyota corolla": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2020_Toyota_Corolla_SE.jpg/800px-2020_Toyota_Corolla_SE.jpg",
+    "honda civic": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/2022_Honda_Civic_Sport.jpg/800px-2022_Honda_Civic_Sport.jpg",
+    "hyundai elantra": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/2021_Hyundai_Elantra_SEL.jpg/800px-2021_Hyundai_Elantra_SEL.jpg",
+}
+
+def _extract_car_names(text: str):
+    """
+    Return a list of unique, lower‑case car model substrings that we know about.
+    The check is a simple substring search – good enough for the limited set we expect.
+    """
+    lowered = text.lower()
+    found = []
+    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
+    # For simplicity we just scan the fallback keys; you can expand this list as needed.
+    for key in FALLBACK_IMAGE_MAP:
+        if key in lowered and key not in found:
+            found.append(key)
+    return found
+
+def get_unsplash_image_url(query: str) -> str | None:
+    """
+    Call Unsplash's search endpoint and return the URL of the first result.
+    Returns None on any error or if no results are found.
+    """
+    if not UNSPLASH_KEY:
+        return None
+
+    url = "https://api.unsplash.com/search/photos"
+    params = {
+        "query": query,
+        "per_page": 1,
+        "client_id": UNSPLASH_KEY,
     }
     try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=12)
-        resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"⚠️ **Error**: {str(e)}"
+        r = requests.get(url, params=params, timeout=8)
+        if r.status_code != 200:
+            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
+            return None
+        data = r.json()
+        results = data.get("results", [])
+        if results:
+            # Use the regular‑size URL (good balance of quality/size)
+            return results[0]["urls"]["regular"]
+    except Exception:
+        pass
+    return None
+
+def get_image_url_for_model(model_key: str) -> str:
+    """
+    Try Unsplash first; if that fails or we have no key, fall back to the static map.
+    Always returns a valid URL (the fallback guarantees it).
+    """
+    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
+    unsplash_url = get_unsplash_image_url(f"{model_key} car")
+    if unsplash_url:
+        return unsplash_url
+
+    # 2️⃣ Fallback to static map
+    return FALLBACK_IMAGE_MAP.get(model_key,
+                                  "https://via.placeholder.com/400x225?text=No+Image+Available")
+
+def show_car_images(model_keys):
+    """
+    Display images for the supplied model keys in a responsive grid.
+    """
+    if not model_keys:
+        return
+
+    cols = st.columns(3)                     # 3 images per row – change as you like
+    for i, key in enumerate(model_keys):
+        img_url = get_image_url_for_model(key)
+        with cols[i % 3]:
+            st.image(img_url, caption=key.title(), use_column_width=True)
 
 # -------------------------------------------------
-# 7. MAIN UI
+# 6. UI SETUP
 # -------------------------------------------------
 st.title("🚗 AI Car Consultant")
-st.markdown("**Ask me anything about cars!** Specs, comparisons, buying advice, market trends…")
+st.markdown("Ask me about specs, comparisons, or which car to buy!")
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! 👋 I'm your AI Car Consultant. How can I help you today?", "models": []}
-    ]
+if "car_messages" not in st.session_state:
+    st.session_state.car_messages = []
 
-# Display chat history
-for msg in st.session_state.messages:
-    avatar = "👤" if msg["role"] == "user" else "🚗"
-    with st.chat_message(msg["role"], avatar=avatar):
+# Render chat history (text + any previously shown images)
+for msg in st.session_state.car_messages:
+    with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        show_car_images(msg["models"])
+        if msg.get("role") == "assistant" and msg.get("image_keys"):
+            show_car_images(msg["image_keys"])
 
-# User input
-if prompt := st.chat_input("e.g., 'Compare Tesla Model 3 vs Hyundai Ioniq 6'"):
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt, "models": []})
-    with st.chat_message("user", avatar="👤"):
+# -------------------- USER INPUT --------------------
+if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
+    # Save & display user message
+    st.session_state.car_messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Generate AI response
-    with st.chat_message("assistant", avatar="🚗"):
-        with st.spinner("🔍 Analyzing..."):
+    # Get assistant answer
+    with st.chat_message("assistant"):
+        with st.spinner("Analyzing car specs…"):
             context = get_car_context()
-            ai_reply = groq_chat(prompt, context)
-            detected_models = extract_car_models(ai_reply)
-            
-            st.markdown(ai_reply)
-            show_car_images(detected_models)
-            
-            # Save to history
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": ai_reply,
-                "models": detected_models
-            })
+            answer = groq_car_chat(prompt, context)
 
-# -------------------------------------------------
-# 8. FOOTER
-# -------------------------------------------------
-st.markdown("""
-<div class="footer">
-    © 2024 AI Car Consultant | Data updated Q3‑2024 | Powered by Groq & Unsplash
-</div>
-""", unsafe_allow_html=True)
+            # Detect which car models we talked about
+            car_keys = _extract_car_names(answer)
+
+            # Show the textual answer first
+            st.markdown(answer)
+
+            # Then show any images we found (via Unsplash → fallback)
+            if car_keys:
+                show_car_images(car_keys)
+            else:
+                st.caption("_No recognisable car model detected – you can extend the detection list or add more fallback images._")
+
+            # Store assistant turn (including the keys so images survive a rerun)
+            st.session_state.car_messages.append(
+                {"role": "assistant", "content": answer, "image_keys": car_keys}
+            )
