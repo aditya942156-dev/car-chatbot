@@ -6,7 +6,7 @@ from urllib.parse import quote
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wide")
 
 # -------------------------------------------------
 # 2. SECRETS
@@ -86,8 +86,6 @@ def _extract_car_names(text: str):
     """
     lowered = text.lower()
     found = []
-    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
-    # For simplicity we just scan the fallback keys; you can expand this list as needed.
     for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
@@ -110,12 +108,10 @@ def get_unsplash_image_url(query: str) -> str | None:
     try:
         r = requests.get(url, params=params, timeout=8)
         if r.status_code != 200:
-            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
             return None
         data = r.json()
         results = data.get("results", [])
         if results:
-            # Use the regular‑size URL (good balance of quality/size)
             return results[0]["urls"]["regular"]
     except Exception:
         pass
@@ -126,27 +122,137 @@ def get_image_url_for_model(model_key: str) -> str:
     Try Unsplash first; if that fails or we have no key, fall back to the static map.
     Always returns a valid URL (the fallback guarantees it).
     """
-    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
     unsplash_url = get_unsplash_image_url(f"{model_key} car")
     if unsplash_url:
         return unsplash_url
 
-    # 2️⃣ Fallback to static map
-    return FALLBACK_IMAGE_MAP.get(model_key,
-                                  "https://via.placeholder.com/400x225?text=No+Image+Available")
+    return FALLBACK_IMAGE_MAP.get(
+        model_key,
+        "https://via.placeholder.com/400x225?text=No+Image+Available"
+    )
+
+# --------- NEW: banner-style car display using your background image ----------
+BACKGROUND_URL = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT8Rv3nv5g8TYwXGdj104EzMlkSZGsBdaoH9g&s"
 
 def show_car_images(model_keys):
     """
-    Display images for the supplied model keys in a responsive grid.
+    Display images for the supplied model keys in styled banner cards
+    using the provided background image.
     """
     if not model_keys:
         return
 
-    cols = st.columns(3)                     # 3 images per row – change as you like
+    st.markdown("### 🖼️ Cars mentioned")
+
+    # CSS for card style (once)
+    st.markdown(f"""
+    <style>
+    .car-card {{
+        position: relative;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+        margin: 18px 0;
+        background: #111827;
+        color: #f9fafb;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+    .car-card-inner {{
+        position: relative;
+        min-height: 260px;
+        display: grid;
+        grid-template-columns: 1.1fr 1.2fr;  /* text | car */
+    }}
+    .car-bg {{
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.75)),
+            url("{BACKGROUND_URL}");
+        background-size: cover;
+        background-position: center;
+        opacity: 0.98;
+        z-index: 0;
+    }}
+    .car-right-tint {{
+        position: absolute;
+        right: -15%;
+        top: -15%;
+        bottom: -15%;
+        width: 65%;
+        background: linear-gradient(135deg, #ffc10780, #f59e0b80);
+        mix-blend-mode: soft-light;
+        clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%);
+        z-index: 1;
+    }}
+    .car-left {{
+        position: relative;
+        z-index: 2;
+        padding: 24px 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+    }}
+    .car-title {{
+        font-size: 20px;
+        font-weight: 700;
+    }}
+    .car-subtitle {{
+        font-size: 12px;
+        color: #e5e7eb;
+        opacity: 0.9;
+    }}
+    .car-right {{
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 12px 12px 18px;
+    }}
+    .car-photo {{
+        max-height: 200px;
+        width: auto;
+        filter: drop-shadow(0 20px 35px rgba(0,0,0,0.9));
+        object-fit: contain;
+    }}
+    @media (max-width: 900px) {{
+        .car-card-inner {{
+            grid-template-columns: 1fr;
+        }}
+        .car-right {{
+            padding-top: 0;
+        }}
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    cols = st.columns(2)  # 2 cards per row
+
     for i, key in enumerate(model_keys):
         img_url = get_image_url_for_model(key)
-        with cols[i % 3]:
-            st.image(img_url, caption=key.title(), use_column_width=True)
+
+        with cols[i % 2]:
+            html = f"""
+            <div class="car-card">
+              <div class="car-bg"></div>
+              <div class="car-right-tint"></div>
+              <div class="car-card-inner">
+                <div class="car-left">
+                    <div class="car-title">{key.title()}</div>
+                    <div class="car-subtitle">
+                        Recommendation card generated by AI Car Consultant.
+                        You can customize this text with specs or pros/cons.
+                    </div>
+                </div>
+                <div class="car-right">
+                    <img src="{img_url}" class="car-photo" alt="{key}">
+                </div>
+              </div>
+            </div>
+            """
+            st.markdown(html, unsafe_allow_html=True)
 
 # -------------------------------------------------
 # 6. UI SETUP
@@ -183,7 +289,7 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             # Show the textual answer first
             st.markdown(answer)
 
-            # Then show any images we found (via Unsplash → fallback)
+            # Then show any images we found (via Unsplash → fallback) in banner style
             if car_keys:
                 show_car_images(car_keys)
             else:
