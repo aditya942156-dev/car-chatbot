@@ -1,184 +1,221 @@
-import streamlit as st
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Professional AI Car Consultant
+--------------------------------
+* Streamlit UI with a full‑width background image.
+* Groq LLM (llama‑3.1‑8b‑instant or mixtral‑8x7b‑32768) as a car expert.
+* Optional streaming of the assistant response.
+* Automatic car‑name detection → Unsplash image lookup (cached) → static fallback.
+* Sidebar controls for model, temperature, max images, streaming.
+* Polished chat bubbles, input box and sidebar styling.
+"""
+
+# -------------------------------------------------
+# 0. IMPORTS
+# -------------------------------------------------
+import base64
+import json
+import re
+from typing import List, Optional, Tuple
+
 import requests
-from urllib.parse import quote
+import streamlit as st
 
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
 st.set_page_config(
-    page_title="Pro AI Car Consultant", 
+    page_title="🚗 AI Car Consultant",
     page_icon="🚗",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide",                 # gives us horizontal space for the background
+    initial_sidebar_state="expanded",
 )
 
 # -------------------------------------------------
-# 2. PREMIUM UI STYLING WITH AUTOMOTIVE BACKGROUND
+# 2. BACKGROUND IMAGE SETTINGS
 # -------------------------------------------------
-def apply_professional_styling():
-    st.markdown("""
-        <style>
-        /* Auto Showroom Background with Dark Overlay */
-        .stApp {
-            background-image: url("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-repeat: no-repeat;
-        }
+# ────────────────────────────────────────────────────────
+# Choose ONE of the two options below:
+#   • PUBLIC URL – e.g. an Unsplash photo, your own hosted image, etc.
+#   • LOCAL FILE – put the image in the repo (e.g. assets/bg.jpg)
+# ────────────────────────────────────────────────────────
+# ---- Option A: public URL (default) ----
+BACKGROUND_URL = (
+    "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb"
+    "?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwyNzY1Nzl8MHwxfHJhbmRvbXx8fHx8fHx8fDE2OTk5NzYwNDg"
+    "&ixlib=rb-4.0.3&q=80&w=2000"
+)  # feel free to replace with any direct image link
 
-        .stApp::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(10, 10, 15, 0.75);
-            z-index: -1;
-        }
+# ---- Option B: local file (uncomment & set path) ----
+# BACKGROUND_PATH = "assets/bg.jpg"   # <-- relative to where you run streamlit
+# -------------------------------------------------
+# Background styling parameters – tweak to match your taste
+BACKGROUND_OPACITY = 0.35               # 0 = no overlay, 1 = completely black
+BACKGROUND_GRADIENT = "to bottom"
+BACKGROUND_GRADIENT_COLORS = ("#0f172a", "#1e293b")   # dark‑blue‑gray overlay
 
-        /* Premium Chat Bubbles */
-        .stChatMessage {
-            background-color: rgba(255, 255, 255, 0.92);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            backdrop-filter: blur(8px);
-            transition: transform 0.2s ease;
-        }
-        .stChatMessage:hover {
-            transform: translateY(-2px);
-        }
 
-        /* Chat Input */
-        .stChatInput {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 12px;
-            border: 2px solid rgba(76, 175, 80, 0.2);
-        }
+def _img_to_base64(url: str) -> str:
+    """Download an image and return a base64‑encoded string."""
+    try:
+        r = requests.get(url, timeout=10)
+        r.raise_for_status()
+        return base64.b64encode(r.content).decode()
+    except Exception as exc:
+        st.warning(f"⚠️ Could not fetch background image: {exc}")
+        return ""
 
-        /* Header & Text Styling */
-        .pro-header {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 30px;
-            padding-bottom: 15px;
-            border-bottom: 3px solid rgba(76, 175, 80, 0.3);
-        }
-        h1, h2, h3, .stMarkdown p, .stCaption, .stAlert {
-            color: white !important;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-        }
 
-        /* Image Styles */
-        .stImage > caption {
-            color: white !important;
-            font-weight: 700;
-            font-size: 1rem;
-            margin-top: 8px;
-        }
+def set_background(
+    img_url: str,
+    *,
+    opacity: float = BACKGROUND_OPACITY,
+    gradient: str = BACKGROUND_GRADIENT,
+    gradient_colors: Tuple[str, str] = BACKGROUND_GRADIENT_COLORS,
+) -> None:
+    """
+    Inject CSS that puts `img_url` as the page background,
+    adds a dark gradient overlay for readability,
+    and styles the main container, chat bubbles, inputs and sidebar.
+    """
+    b64 = _img_to_base64(img_url)
+    if not b64:
+        bg_css = f"background: {gradient_colors[0]};"
+    else:
+        bg_css = (
+            f"background: url('data:image/jpeg;base64,{b64}');"
+            f"background-size: cover;"
+            f"background-position: center;"
+            f"background-attachment: fixed;"
+        )
 
-        /* Interactive Elements */
-        .stSpinner > div > div {
-            color: #4CAF50 !important;
-        }
-        .stButton > button {
-            background-color: #4CAF50;
-            color: white;
+    # Build the overlay gradient (darkens the image just enough)
+    def hex_to_rgb(h: str) -> Tuple[int, int, int]:
+        h = h.lstrip("#")
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    r1, g1, b1 = hex_to_rgb(gradient_colors[0])
+    r2, g2, b2 = hex_to_rgb(gradient_colors[1])
+    overlay_css = (
+        f"background: linear-gradient({gradient}, "
+        f"rgba({r1},{g1},{b1},{opacity}), "
+        f"rgba({r2},{g2},{b2},{min(opacity+0.15, 1.0)});"
+    )
+
+    css = f"""
+    <style>
+        /* ---- PAGE BACKGROUND ---- */
+        .stApp {{
+            {bg_css}
+            {overlay_css}
+            color: #f8fafc;               /* light text for contrast */
+            font-family: 'Inter', sans-serif;
+        }}
+
+        /* ---- Main content container (gives a frosted‑glass feel) ---- */
+        .block-container {{
+            background: rgba(0,0,0,0.35);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(4px);
+        }}
+
+        /* ---- CHAT BUBBLES ---- */
+        .stChatMessage {{
             border-radius: 16px;
-            border: none;
-            padding: 10px 20px;
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-        }
-        .stButton > button:hover {
-            background-color: #43A047;
-        }
-        .stWarning {
-            background-color: rgba(255, 193, 7, 0.2);
-            border-radius: 12px;
-        }
-        .stError {
-            background-color: rgba(244, 67, 54, 0.2);
-            border-radius: 12px;
-        }
+            padding: 0.9rem 1.2rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }}
+        .stChatMessage[data-testid="stChatMessage-user"] {{
+            background: rgba(30, 64, 175, 0.18);   /* soft blue */
+            border-left: 4px solid #1e40af;
+        }}
+        .stChatMessage[data-testid="stChatMessage-assistant"] {{
+            background: rgba(34, 197, 94, 0.15);   /* soft green */
+            border-left: 4px solid #16a34a;
+        }}
 
-        /* Footer */
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.7);
-            font-size: 0.9rem;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+        /* ---- INPUT BOX ---- */
+        .stTextInput > div > div > input {{
+            background: rgba(255,255,255,0.08);
+            color: #f8fafc;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+        }}
+        .stTextInput > div > div > input:focus {{
+            box-shadow: 0 0 0 2px rgba(30,64,175,0.4);
+        }}
 
-apply_professional_styling()
+        /* ---- SIDEBAR (optional) ---- */
+        [data-testid="stSidebar"] {|
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(6px);
+        }}
+        [data-testid="stSidebar"] .stSelectbox,
+        [data-testid="stSidebar"] .stSlider,
+        [data-testid="stSidebar"] .stCheckbox {{
+            color: #e2e8f0;
+        }}
+
+        /* ---- Headings ---- */
+        h1, h2, h3 {{
+            color: #f1f5f9;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+
 
 # -------------------------------------------------
-# 3. SECRETS MANAGEMENT
+# 3. CALL BACKGROUND SETTER (choose source)
 # -------------------------------------------------
-GROQ_KEY = st.secrets.get("GROQ_KEY", None)
-UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
+if "BACKGROUND_URL" in globals() and BACKGROUND_URL:
+    set_background(BACKGROUND_URL)
+elif "BACKGROUND_PATH" in globals():
+    # local file – read and base64‑encode it
+    try:
+        with open(BACKGROUND_PATH, "rb") as f:
+            local_b64 = base64.b64encode(f.read()).decode()
+        set_background(f"data:image/jpeg;base64,{local_b64}")
+    except Exception as e:
+        st.error(f"❌ Could not load local background image: {e}")
+        st.stop()
+else:
+    st.error("❌ No background image source defined. Set BACKGROUND_URL or BACKGROUND_PATH.")
+    st.stop()
+
+
+# -------------------------------------------------
+# 4. SECRETS
+# -------------------------------------------------
+GROQ_KEY = st.secrets.get("GROQ_KEY")
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY")  # optional – if missing we fall back to static images
 
 if not GROQ_KEY:
-    st.error("❌ Missing GROQ API Key! Please add it to your Streamlit Secrets.")
+    st.error("❌ Missing `GROQ_KEY` in Secrets!")
     st.stop()
 if not UNSPLASH_KEY:
-    st.warning("⚠️ Unsplash API Key not found. Using fallback car images.")
+    st.warning("⚠️ `UNSPLASH_KEY` not set – image lookup will fall back to static images.")
+
 
 # -------------------------------------------------
-# 4. CAR MARKET DATA (2024-2025)
+# 5. STATIC DATA (car makes, fallback images, context)
 # -------------------------------------------------
-def get_latest_car_data():
-    return """
-    2024-2025 Automotive Market Insights:
-    - EV Leaders: Tesla Model 3 Highland (333mi range, $38,990), Hyundai Ioniq 6 (361mi, $41,600), BYD Seal (323mi, $37,490)
-    - Top Hybrids: Toyota RAV4 Hybrid (41 MPG, $30,300), Honda CR-V Hybrid (40 MPG, $32,400), Kia Sportage Hybrid (42 MPG, $28,500)
-    - Luxury EVs: BMW i7 (321mi, $105,700), Mercedes EQS (350mi, $104,400), Audi e-tron GT (238mi, $106,500)
-    - Budget Cars: Toyota Corolla (35 MPG, $21,550), Honda Civic (36 MPG, $23,950), Hyundai Elantra (37 MPG, $22,790)
-    Market Trends: EV prices down 12% YoY, hybrid sales up 28%, 80% of new car buyers prioritize fuel efficiency.
-    """
+KNOWN_MAKES = {
+    "tesla", "toyota", "honda", "hyundai", "kia", "bmw",
+    "mercedes-benz", "mercedes", "audi", "ford", "chevrolet",
+    "nissan", "volkswagen", "volvo", "subaru", "mazda",
+    "porsche", "lexus", "jaguar", "land rover", "rivian",
+    "lucid", "polestar", "bmw i", "mercedes eq", "audi e-tron"
+}
 
-# -------------------------------------------------
-# 5. GROQ AI CHATBOT
-# -------------------------------------------------
-def car_expert_chat(prompt: str, market_data: str) -> str:
-    url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {GROQ_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "llama-3.1-8b-instant",
-        "messages": [
-            {"role": "system", "content":
-                "You are a Senior Automotive Consultant with 18 years of experience. Provide detailed, unbiased advice with pros/cons, specs, pricing, and market context. "
-                "Structure responses clearly with bullet points for readability. Avoid jargon unless asked. Be friendly and helpful."},
-            {"role": "user", "content": f"MARKET DATA: {market_data}\n\nUSER QUESTION: {prompt}"}
-        ],
-        "temperature": 0.6,
-        "max_tokens": 1200,
-        "stream": False
-    }
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"⚠️ Sorry, I couldn't process your request: {str(e)}"
-
-# -------------------------------------------------
-# 6. CAR IMAGE FETCHING
-# -------------------------------------------------
-FALLBACK_CAR_IMAGES = {
+FALLBACK_IMAGE_MAP = {
     "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
     "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
     "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
     "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
@@ -192,85 +229,293 @@ FALLBACK_CAR_IMAGES = {
     "hyundai elantra": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/2021_Hyundai_Elantra_SEL.jpg/800px-2021_Hyundai_Elantra_SEL.jpg",
 }
 
-def extract_car_models(text: str):
-    lowered = text.lower()
-    models = []
-    for model in FALLBACK_CAR_IMAGES.keys():
-        if model in lowered and model not in models:
-            models.append(model)
-    return models
+# -------------------------------------------------
+# 6. HELPERS – MARKET CONTEXT (cached)
+# -------------------------------------------------
+@st.cache_data(ttl=60 * 60)  # refresh once an hour
+def get_car_context() -> str:
+    """Simulated live market data – cached so we don’t rebuild on each rerun."""
+    return """
+    Current Trending Cars (2024‑2025):
+    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal.
+    - SUVs: Toyota RAV4 Hybrid, Honda CR-V, Kia Sportage.
+    - Luxury: BMW i7, Mercedes EQS, Audi e-tron GT.
+    - Budget: Toyota Corolla, Honda Civic, Hyundai Elantra.
+    Market Trend: Heavy shift towards Hybrids and EVs. Prices are stabilizing.
+    """
 
-def fetch_car_image(model: str):
-    if UNSPLASH_KEY:
+# -------------------------------------------------
+# 7. GROQ API CALL (with optional streaming & retry)
+# -------------------------------------------------
+def groq_car_chat(
+    prompt: str,
+    context: str,
+    *,
+    model: str = "llama-3.1-8b-instant",
+    temperature: float = 0.7,
+    max_tokens: Optional[int] = None,
+    stream: bool = False,
+    max_retries: int = 2,
+) -> str:
+    """
+    Calls Groq's chat completion endpoint.
+    If `stream=True` the function returns a generator yielding text chunks.
+    On failure it returns a user‑friendly error string.
+    """
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content":
+                "You are a professional Car Expert. You know everything about engine specs, mileage, EV range, and car comparisons. "
+                "Be helpful and give pros/cons."},
+            {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
+        ],
+        "temperature": temperature,
+        **({"max_tokens": max_tokens} if max_tokens is not None else {}),
+        "stream": stream,
+    }
+
+    for attempt in range(max_retries + 1):
         try:
-            url = f"https://api.unsplash.com/search/photos?query={quote(f'2024 {model} car')}&per_page=1&client_id={UNSPLASH_KEY}"
-            response = requests.get(url, timeout=8)
-            if response.status_code == 200:
-                data = response.json()
-                if data["results"]:
-                    return data["results"][0]["urls"]["regular"]
-        except Exception:
-            pass
-    return FALLBACK_CAR_IMAGES.get(model, "https://via.placeholder.com/400x225?text=No+Image+Available")
+            resp = requests.post(url, headers=headers, json=payload, timeout=15)
+            if resp.status_code == 200:
+                if stream:
+                    # Return a generator that yields decoded chunks
+                    def _stream():
+                        for line in resp.iter_lines():
+                            if line:
+                                decoded = line.decode("utf-8")
+                                if decoded.startswith("data:"):
+                                    data = decoded[5:].strip()
+                                    if data == "[DONE]":
+                                        break
+                                    try:
+                                        chunk = json.loads(data)
+                                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                                        content = delta.get("content")
+                                        if content:
+                                            yield content
+                                    except json.JSONDecodeError:
+                                        continue
+                    return _stream()
+                else:
+                    return resp.json()["choices"][0]["message"]["content"]
+            err_msg = f"Groq API error {resp.status_code}: {resp.text}"
+        except requests.RequestException as exc:
+            err_msg = f"Network error while calling Groq: {exc}"
 
-def show_car_gallery(models):
-    if not models:
+        if attempt < max_retries:
+            st.toast(f"⚠️ {err_msg} – retrying…", icon="🔁")
+            import time
+            time.sleep(1.5 ** attempt)   # simple exponential back‑off
+        else:
+            # final attempt failed → friendly message
+            return (
+                "🤖 Sorry, I couldn’t reach the car‑expert service right now. Please try again later.\n\n"
+                f"*Technical detail:* {err_msg}"
+            )
+    return "🤖 Unexpected error while contacting the assistant."
+
+
+# -------------------------------------------------
+# 8. IMAGE HELPERS
+# -------------------------------------------------
+@st.cache_data(show_spinner=False, ttl=60 * 60)  # cache for an hour
+def get_unsplash_image_url(query: str) -> Optional[str]:
+    """Query Unsplash and return the `regular` size URL of the first result."""
+    if not UNSPLASH_KEY:
+        return None
+    url = "https://api.unsplash.com/search/photos"
+    params = {"query": query, "per_page": 1, "client_id": UNSPLASH_KEY}
+    try:
+        r = requests.get(url, params=params, timeout=8)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        results = data.get("results", [])
+        if results:
+            return results[0]["urls"]["regular"]
+    except Exception:
+        pass
+    return None
+
+
+def get_image_url_for_model(model_key: str) -> str:
+    """Try Unsplash first; fall back to static map; finally a placeholder."""
+    unsplash_url = get_unsplash_image_url(f"{model_key} car")
+    if unsplash_url:
+        return unsplash_url
+    return FALLBACK_IMAGE_MAP.get(
+        model_key,
+        "https://via.placeholder.com/400x225?text=No+Image+Available"
+    )
+
+
+def _extract_car_names(text: str) -> List[str]:
+    """
+    Very lightweight NER:
+      - Find any known make (case‑insensitive)
+      - Grab the next 1‑2 words (heuristic for model).
+    Returns a de‑duplicated, lower‑cased list.
+    """
+    lowered = text.lower()
+    found = set()
+
+    pattern = re.compile(
+        rf"\b({'|'.join(KNOWN_MAKES)})\b[\s\-]*[a-z0-9]+(?:\s+[a-z0-9\-]+){0,2}"
+    )
+    for m in pattern.finditer(lowered):
+        cand = m.group(0).strip()
+        cand = re.sub(r"[\s\-]+", " ", cand)
+        found.add(cand)
+
+    # Also check the fallback map – catches models we explicitly listed
+    for key in FALLBACK_IMAGE_MAP:
+        if key in lowered:
+            found.add(key)
+
+    return sorted(found)
+
+
+def show_car_images(model_keys: List[str], max_imgs: int = 6) -> None:
+    """Render images in a responsive grid (de‑duplicated & limited)."""
+    if not model_keys:
         return
-    cols = st.columns(min(3, len(models)))
-    for idx, model in enumerate(models):
-        with cols[idx % 3]:
-            st.image(fetch_car_image(model), caption=model.title(), use_column_width=True)
+    keys = list(dict.fromkeys(model_keys))[:max_imgs]   # preserve order, deduplicate
+
+    cols_count = 3
+    cols = st.columns(cols_count)
+    for idx, key in enumerate(keys):
+        img_url = get_image_url_for_model(key)
+        with cols[idx % cols_count]:
+            st.image(img_url, caption=key.title(), use_column_width=True)
+
 
 # -------------------------------------------------
-# 7. MAIN UI INTERFACE
+# 9. SIDEBAR – USER CONTROLS
 # -------------------------------------------------
-# Premium Header
-st.markdown("""
-    <div class="pro-header">
-        <h1 style="margin:0; font-size: 2.5rem;">🚗 Pro AI Car Consultant</h1>
-        <span style="color: #4CAF50; font-weight: 700; font-size: 1.2rem;">2024 Edition</span>
-    </div>
-""", unsafe_allow_html=True)
-st.markdown("### Your trusted automotive expert for specs, comparisons, and buying advice.")
+with st.sidebar:
+    st.header("⚙️ Settings")
+    model_choice = st.selectbox(
+        "Groq model",
+        options=["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+        index=0,
+        help="Larger models are slower but may be more knowledgeable."
+    )
+    temperature = st.slider(
+        "Creativity (temperature)",
+        min_value=0.0,
+        max_value=1.5,
+        value=0.7,
+        step=0.1,
+        help="Higher → more random/diverse answers."
+    )
+    max_images = st.slider(
+        "Max images to show per answer",
+        min_value=0,
+        max_value=10,
+        value=4,
+        step=1,
+        help="Set to 0 to suppress image lookup entirely."
+    )
+    use_streaming = st.checkbox(
+        "Stream assistant response",
+        value=True,
+        help="Shows the answer token‑by‑token (ChatGPT‑style)."
+    )
+    st.divider()
+    st.caption(
+        "Tip: Add more makes to `KNOWN_MAKES` or extend `FALLBACK_IMAGE_MAP` if you need better offline coverage."
+    )
 
-# Initialize Chat History
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [
-        {"role": "assistant", "content": "Hello! 👋 I'm your professional car consultant. Ask me anything about cars—specs, comparisons, market trends, or buying guides!", "models": []}
-    ]
 
-# Render Chat
-for msg in st.session_state.chat_history:
-    avatar = "👤" if msg["role"] == "user" else "🚗"
-    with st.chat_message(msg["role"], avatar=avatar):
+# -------------------------------------------------
+# 10. UI – TITLE & CHAT HISTORY
+# -------------------------------------------------
+st.title("🚗 AI Car Consultant")
+st.markdown("Ask me about specs, comparisons, or which car to buy!")
+
+if "car_messages" not in st.session_state:
+    st.session_state.car_messages = []   # each entry: dict(role, content, image_keys?)
+
+# Render past turns
+for msg in st.session_state.car_messages:
+    with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg["models"]:
-            show_car_gallery(msg["models"])
+        if msg.get("role") == "assistant" and msg.get("image_keys"):
+            show_car_images(msg["image_keys"], max_imgs=st.session_state.get("max_images", 4))
 
-# User Input
-if user_query := st.chat_input("Type your question here... e.g., 'Should I buy a Tesla Model 3 or Hyundai Ioniq 6?'"):
-    # Add User Message
-    st.session_state.chat_history.append({"role": "user", "content": user_query, "models": []})
-    with st.chat_message("user", avatar="👤"):
-        st.markdown(user_query)
 
-    # Generate Response
-    with st.chat_message("assistant", avatar="🚗"):
-        with st.spinner("Analyzing your request..."):
-            market_data = get_latest_car_data()
-            response = car_expert_chat(user_query, market_data)
-            detected_models = extract_car_models(response)
-            
-            st.markdown(response)
-            if detected_models:
-                show_car_gallery(detected_models)
-            
-            # Save to History
-            st.session_state.chat_history.append({"role": "assistant", "content": response, "models": detected_models})
+# -------------------------------------------------
+# 11. CHAT INPUT & LOGIC
+# -------------------------------------------------
+if prompt := st.chat_input("Example: Should I buy a Tesla Model 3 or a BMW i4?"):
+    # ---- USER TURN ----
+    st.session_state.car_messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-# Footer
-st.markdown("""
-    <div class="footer">
-        © 2024 Pro AI Car Consultant | Data Updated Q3 2024 | Powered by Groq AI & Unsplash
-    </div>
-""", unsafe_allow_html=True)
+    # ---- ASSISTANT TURN ----
+    with st.chat_message("assistant"):
+        context = get_car_context()
+
+        if use_streaming:
+            # Stream into an empty container and collect the full text for storage
+            response_placeholder = st.empty()
+            collected: List[str] = []
+
+            stream_gen = groq_car_chat(
+                prompt,
+                context,
+                model=model_choice,
+                temperature=temperature,
+                stream=True,
+            )
+            for chunk in stream_gen:          # type: ignore[arg-type]
+                collected.append(chunk)
+                response_placeholder.markdown("".join(collected) + "▌")
+            final_answer = "".join(collected)
+            response_placeholder.markdown(final_answer)
+        else:
+            with st.spinner("Analyzing car specs…"):
+                final_answer = groq_car_chat(
+                    prompt,
+                    context,
+                    model=model_choice,
+                    temperature=temperature,
+                    stream=False,
+                )
+                st.markdown(final_answer)
+
+        # ---- IMAGE LOGIC ----
+        car_keys = _extract_car_names(final_answer)
+        if car_keys and st.session_state.get("max_images", 0) > 0:
+            show_car_images(car_keys, max_imgs=st.session_state.get("max_images", 4))
+        elif not car_keys:
+            st.caption(
+                "_No recognisable car model detected – you can extend the detection list or add more fallback images._"
+            )
+
+        # ---- SAVE ASSISTANT TURN ----
+        st.session_state.car_messages.append(
+            {
+                "role": "assistant",
+                "content": final_answer,
+                "image_keys": car_keys if car_keys else [],
+            }
+        )
+
+
+# -------------------------------------------------
+# 12. FOOTER (optional)
+# -------------------------------------------------
+st.divider()
+st.caption(
+    "Built with Streamlit • Groq • Unsplash • 🚗  "
+    "Feel free to fork and customise!"
+)
