@@ -20,7 +20,7 @@ st.set_page_config(
 
 # OPTION B: use an external image URL (example from Unsplash):
 BG_IMAGE_URL = (
-    "https://go.trader.ca/wp-content/uploads/2017/08/web-from-background-car.jpg"
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQdszTZzcSL9J1TkzHcOw68e-dY-Lxgj5-mcw&s"
 )
 
 st.markdown(
@@ -265,3 +265,4 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
+
