@@ -6,104 +6,23 @@ from urllib.parse import quote
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wide")
-
-# Custom CSS for better styling with background images
-st.markdown("""
-<style>
-    /* Car image container styling with background images */
-    .car-image-container {
-        position: relative;
-        border-radius: 15px;
-        padding: 20px;
-        margin: 10px 0;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 350px;
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        overflow: hidden;
-    }
-    
-    /* Dark overlay for better text readability */
-    .car-image-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 100%);
-        z-index: 1;
-    }
-    
-    .car-image-wrapper {
-        background: rgba(255, 255, 255, 0.95);
-        border-radius: 12px;
-        padding: 15px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        max-width: 100%;
-        position: relative;
-        z-index: 2;
-        backdrop-filter: blur(10px);
-    }
-    
-    .car-image-wrapper img {
-        width: 100%;
-        border-radius: 8px;
-        object-fit: contain;
-        max-height: 280px;
-        display: block;
-    }
-    
-    .car-image-caption {
-        text-align: center;
-        font-weight: bold;
-        color: white;
-        margin-top: 12px;
-        font-size: 20px;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
-        position: relative;
-        z-index: 3;
-    }
-    
-    .car-specs {
-        position: relative;
-        z-index: 2;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 10px;
-        font-size: 12px;
-        color: #333;
-    }
-    
-    .car-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 20px;
-        margin: 20px 0;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
 
 # -------------------------------------------------
 # 2. SECRETS
 # -------------------------------------------------
 GROQ_KEY   = st.secrets.get("GROQ_KEY", None)
-UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)   # <-- free Unsplash access key
 
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
 if not UNSPLASH_KEY:
-    st.warning("⚠️ UNSPLASH_KEY not set – using fallback images only.")
+    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a tiny static map.")
+    # You can still run the app; images just won’t appear unless they’re in the fallback map.
 
 # -------------------------------------------------
-# 3. CAR CONTEXT
+# 3. CAR CONTEXT (simulated live market data)
 # -------------------------------------------------
 def get_car_context():
     return """
@@ -141,93 +60,44 @@ def groq_car_chat(prompt: str, context: str) -> str:
     return f"Error: {resp.text}"
 
 # -------------------------------------------------
-# 5. CAR DATA WITH BACKGROUND IMAGES
+# 5. HELPERS – extract car names & fetch images
 # -------------------------------------------------
-
-# High-quality car background images (landscape/wide format)
-CAR_DATA = {
-    "tesla model 3": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-        "background": "https://images.unsplash.com/photo-1619405399517-d4aa7cb4d4fe?w=1200&h=400&fit=crop",  # EV charging station
-        "specs": "🔋 Range: 272-363 mi | ⚡ 0-60 mph: 5.1s | 🌍 EPA Efficiency: 24 kWh/100mi"
-    },
-    "tesla model 3 highland": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-        "background": "https://images.unsplash.com/photo-1619405399517-d4aa7cb4d4fe?w=1200&h=400&fit=crop",
-        "specs": "🔋 Range: 272-363 mi | ⚡ 0-60 mph: 5.1s | 🌍 EPA Efficiency: 24 kWh/100mi"
-    },
-    "hyundai ioniq 6": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
-        "background": "https://images.unsplash.com/photo-1617469762169-df33d37bd0e4?w=1200&h=400&fit=crop",  # Modern highway
-        "specs": "🔋 Range: 303 mi | ⚡ 0-60 mph: 6.2s | 💰 Starting: $32,550"
-    },
-    "byd seal": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
-        "background": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=400&fit=crop",  # Urban road
-        "specs": "🔋 Range: 265-373 mi | ⚡ 0-60 mph: 5.9s | 🌍 Popular in China"
-    },
-    "toyota rav4 hybrid": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
-        "background": "https://images.unsplash.com/photo-1500595046891-d8761a96a87f?w=1200&h=400&fit=crop",  # Scenic mountain road
-        "specs": "⛽ MPG: 40-44 city | 🚙 Seats: 5 | 💰 Starting: $33,050"
-    },
-    "honda cr-v": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
-        "background": "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop",  # Off-road adventure
-        "specs": "⛽ MPG: 28-35 | 🚙 Seats: 5 | 🎯 Cargo: 76.5 cu.ft"
-    },
-    "kia sportage": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
-        "background": "https://images.unsplash.com/photo-1468276311594-df7cb65d8c50?w=1200&h=400&fit=crop",  # Sunset drive
-        "specs": "⛽ MPG: 26-33 | 🚙 Seats: 5 | 💰 Starting: $26,610"
-    },
-    "bmw i7": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
-        "background": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&h=400&fit=crop",  # Luxury cityscape
-        "specs": "🔋 Range: 380 mi | ⚡ 0-60 mph: 4.6s | 💰 Starting: $101,550"
-    },
-    "mercedes eqs": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
-        "background": "https://images.unsplash.com/photo-1482784160316-6c6ee4d5f18e?w=1200&h=400&fit=crop",  # Night city lights
-        "specs": "🔋 Range: 350-400 mi | ⚡ 0-60 mph: 4.3s | 💰 Starting: $99,650"
-    },
-    "audi e-tron gt": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
-        "background": "https://images.unsplash.com/photo-1553882900-f2b06423ff84?w=1200&h=400&fit=crop",  # Track/performance
-        "specs": "🔋 Range: 249 mi | ⚡ 0-60 mph: 3.4s | 💰 Starting: $99,000"
-    },
-    "toyota corolla": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2020_Toyota_Corolla_SE.jpg/800px-2020_Toyota_Corolla_SE.jpg",
-        "background": "https://images.unsplash.com/photo-1605425836025-e17989c5de11?w=1200&h=400&fit=crop",  # Family road trip
-        "specs": "⛽ MPG: 28-38 | 🚙 Seats: 5 | 💰 Starting: $22,050"
-    },
-    "honda civic": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/2022_Honda_Civic_Sport.jpg/800px-2022_Honda_Civic_Sport.jpg",
-        "background": "https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=1200&h=400&fit=crop",  # Urban street
-        "specs": "⛽ MPG: 30-42 | 🚙 Seats: 5 | 💰 Starting: $22,000"
-    },
-    "hyundai elantra": {
-        "car_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/2021_Hyundai_Elantra_SEL.jpg/800px-2021_Hyundai_Elantra_SEL.jpg",
-        "background": "https://images.unsplash.com/photo-1506901925346-21bda4d32df4?w=1200&h=400&fit=crop",  # Scenic highway
-        "specs": "⛽ MPG: 32-40 | 🚙 Seats: 5 | 💰 Starting: $20,250"
-    },
+# A very small static fallback (used only when Unsplash fails or the key is missing)
+FALLBACK_IMAGE_MAP = {
+    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
+    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
+    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
+    "honda cr-v": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
+    "kia sportage": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
+    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
+    "mercedes eqs": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
+    "audi e-tron gt": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
+    "toyota corolla": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2020_Toyota_Corolla_SE.jpg/800px-2020_Toyota_Corolla_SE.jpg",
+    "honda civic": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/2022_Honda_Civic_Sport.jpg/800px-2022_Honda_Civic_Sport.jpg",
+    "hyundai elantra": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/2021_Hyundai_Elantra_SEL.jpg/800px-2021_Hyundai_Elantra_SEL.jpg",
 }
 
-# -------------------------------------------------
-# 6. HELPERS – extract car names & fetch images
-# -------------------------------------------------
-
 def _extract_car_names(text: str):
-    """Return list of unique, lower-case car model names found in text"""
+    """
+    Return a list of unique, lower‑case car model substrings that we know about.
+    The check is a simple substring search – good enough for the limited set we expect.
+    """
     lowered = text.lower()
     found = []
-    for key in CAR_DATA:
+    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
+    # For simplicity we just scan the fallback keys; you can expand this list as needed.
+    for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
     return found
 
 def get_unsplash_image_url(query: str) -> str | None:
-    """Call Unsplash API to get high-quality car image"""
+    """
+    Call Unsplash's search endpoint and return the URL of the first result.
+    Returns None on any error or if no results are found.
+    """
     if not UNSPLASH_KEY:
         return None
 
@@ -240,48 +110,46 @@ def get_unsplash_image_url(query: str) -> str | None:
     try:
         r = requests.get(url, params=params, timeout=8)
         if r.status_code != 200:
+            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
             return None
         data = r.json()
         results = data.get("results", [])
         if results:
+            # Use the regular‑size URL (good balance of quality/size)
             return results[0]["urls"]["regular"]
     except Exception:
         pass
     return None
 
+def get_image_url_for_model(model_key: str) -> str:
+    """
+    Try Unsplash first; if that fails or we have no key, fall back to the static map.
+    Always returns a valid URL (the fallback guarantees it).
+    """
+    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
+    unsplash_url = get_unsplash_image_url(f"{model_key} car")
+    if unsplash_url:
+        return unsplash_url
+
+    # 2️⃣ Fallback to static map
+    return FALLBACK_IMAGE_MAP.get(model_key,
+                                  "https://via.placeholder.com/400x225?text=No+Image+Available")
+
 def show_car_images(model_keys):
-    """Display car images with background images and specs"""
+    """
+    Display images for the supplied model keys in a responsive grid.
+    """
     if not model_keys:
         return
 
-    st.markdown("### 🖼️ Car Models")
-    
-    cols = st.columns(2)  # 2 images per row for better visibility
-    
+    cols = st.columns(3)                     # 3 images per row – change as you like
     for i, key in enumerate(model_keys):
-        car_data = CAR_DATA.get(key, {})
-        car_img = car_data.get("car_image", "")
-        bg_img = car_data.get("background", "")
-        specs = car_data.get("specs", "")
-        
-        with cols[i % 2]:
-            # Create HTML with background image
-            html_content = f"""
-            <div class="car-image-container" style="background-image: url('{bg_img}');">
-                <div class="car-image-wrapper">
-                    <img src="{car_img}" alt="{key}">
-                </div>
-            </div>
-            <div class="car-image-caption">{key.title()}</div>
-            """
-            
-            if specs:
-                html_content += f'<div class="car-specs">{specs}</div>'
-            
-            st.markdown(html_content, unsafe_allow_html=True)
+        img_url = get_image_url_for_model(key)
+        with cols[i % 3]:
+            st.image(img_url, caption=key.title(), use_column_width=True)
 
 # -------------------------------------------------
-# 7. UI SETUP
+# 6. UI SETUP
 # -------------------------------------------------
 st.title("🚗 AI Car Consultant")
 st.markdown("Ask me about specs, comparisons, or which car to buy!")
@@ -289,32 +157,39 @@ st.markdown("Ask me about specs, comparisons, or which car to buy!")
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
-# Render chat history
+# Render chat history (text + any previously shown images)
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg.get("role") == "assistant" and msg.get("image_keys"):
             show_car_images(msg["image_keys"])
 
-# User input
+# -------------------- USER INPUT --------------------
 if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
+    # Save & display user message
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Get assistant answer
     with st.chat_message("assistant"):
         with st.spinner("Analyzing car specs…"):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
+
+            # Detect which car models we talked about
             car_keys = _extract_car_names(answer)
 
+            # Show the textual answer first
             st.markdown(answer)
 
+            # Then show any images we found (via Unsplash → fallback)
             if car_keys:
                 show_car_images(car_keys)
             else:
-                st.caption("_No recognisable car model detected._")
+                st.caption("_No recognisable car model detected – you can extend the detection list or add more fallback images._")
 
+            # Store assistant turn (including the keys so images survive a rerun)
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
