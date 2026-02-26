@@ -18,7 +18,7 @@ st.markdown("""
     <style>
     .stApp {
         background: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), 
-                    url("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=2000");
+                    url("https://www.pexels.com/photo/photography-of-gray-sports-car-919073/");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -171,3 +171,4 @@ if user_prompt := st.chat_input("Type your question... e.g., 'Should I buy a Tes
             
             # Save to chat history
             st.session_state.chat_history.append({"role": "assistant", "content": ai_response, "models": detected_models})
+
