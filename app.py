@@ -15,9 +15,9 @@ st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wid
 BG_IMAGE_URL = "/static/bg.jpg"
 
 st.markdown(
-    f"""
+    
     <style>
-    /* Full‑page background */
+   # /* Full‑page background */
     .stApp {{
         background-image: url("{BG_IMAGE_URL}");
         background-size: cover;
@@ -26,7 +26,7 @@ st.markdown(
         background-attachment: fixed;
     }}
 
-    /* Dark overlay for readability */
+   # /* Dark overlay for readability */
     .stApp::before {{
         content: "";
         position: fixed;
@@ -36,10 +36,10 @@ st.markdown(
         z-index: -1;
     }}
 
-    /* Global text color */
+   # /* Global text color */
     .stApp {{ color: #ffffff !important; }}
 
-    /* Chat message styling */
+   # /* Chat message styling */
     div.stChatMessage.user div.stChatMessageContent {{
         background-color: rgba(255, 255, 255, 0.88) !important;
         color: black !important;
@@ -53,18 +53,18 @@ st.markdown(
         padding: 12px;
     }}
 
-    /* Input box */
+    #/* Input box */
     div[data-testid="stChatInput"] textarea {{
         background-color: rgba(255,255,255,0.92) !important;
         color: black !important;
         border-radius: 8px;
     }}
 
-    /* Optional: hide Streamlit's default menu/footer */
+    #/* Optional: hide Streamlit's default menu/footer */
     #MainMenu {{ visibility: hidden; }}
     footer {{ visibility: hidden; }}
     </style>
-    """,
+    
     unsafe_allow_html=True
 )
 
@@ -249,3 +249,4 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
+
