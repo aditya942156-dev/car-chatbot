@@ -43,8 +43,8 @@ st.markdown(
     div.stChatMessage.user div.stChatMessageContent {{
         background-color: rgba(255, 255, 255, 0.88) !important;
         color: black !important;
-        border-radius: 12px;
-        padding: 12px;
+        border-radius: 10px;
+        padding: 10px;
     }}
     div.stChatMessage.assistant div.stChatMessageContent {{
         background-color: rgba(0, 0, 0, 0.65) !important;
@@ -249,4 +249,5 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
+
 
