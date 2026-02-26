@@ -1,3 +1,8 @@
+# Updated Code with Background Styling
+
+Here's the modified code that displays car images with a suitable background:
+
+```python
 import streamlit as st
 import requests
 import re
@@ -6,23 +11,81 @@ from urllib.parse import quote
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wide")
+
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    /* Car image container styling */
+    .car-image-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 300px;
+    }
+    
+    .car-image-wrapper {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        max-width: 100%;
+    }
+    
+    .car-image-caption {
+        text-align: center;
+        font-weight: bold;
+        color: white;
+        margin-top: 12px;
+        font-size: 18px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Alternative backgrounds */
+    .bg-dark {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    }
+    
+    .bg-sunset {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ffa94d 100%);
+    }
+    
+    .bg-modern {
+        background: linear-gradient(135deg, #00d2fc 0%, #3a7bd5 100%);
+    }
+    
+    .bg-luxury {
+        background: linear-gradient(135deg, #d4af37 0%, #8b7500 100%);
+    }
+    
+    .car-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+        margin: 20px 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------------------------
 # 2. SECRETS
 # -------------------------------------------------
 GROQ_KEY   = st.secrets.get("GROQ_KEY", None)
-UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)   # <-- free Unsplash access key
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
 
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
 if not UNSPLASH_KEY:
     st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a tiny static map.")
-    # You can still run the app; images just won’t appear unless they’re in the fallback map.
 
 # -------------------------------------------------
-# 3. CAR CONTEXT (simulated live market data)
+# 3. CAR CONTEXT
 # -------------------------------------------------
 def get_car_context():
     return """
@@ -62,7 +125,6 @@ def groq_car_chat(prompt: str, context: str) -> str:
 # -------------------------------------------------
 # 5. HELPERS – extract car names & fetch images
 # -------------------------------------------------
-# A very small static fallback (used only when Unsplash fails or the key is missing)
 FALLBACK_IMAGE_MAP = {
     "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
     "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
@@ -79,25 +141,28 @@ FALLBACK_IMAGE_MAP = {
     "hyundai elantra": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/2021_Hyundai_Elantra_SEL.jpg/800px-2021_Hyundai_Elantra_SEL.jpg",
 }
 
+# Background styles for different car types
+CAR_BACKGROUND_STYLES = {
+    "tesla": "bg-modern",
+    "bmw": "bg-luxury",
+    "mercedes": "bg-luxury",
+    "audi": "bg-luxury",
+    "hyundai": "bg-dark",
+    "honda": "bg-dark",
+    "toyota": "bg-dark",
+    "kia": "bg-dark",
+    "byd": "bg-sunset",
+}
+
 def _extract_car_names(text: str):
-    """
-    Return a list of unique, lower‑case car model substrings that we know about.
-    The check is a simple substring search – good enough for the limited set we expect.
-    """
     lowered = text.lower()
     found = []
-    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
-    # For simplicity we just scan the fallback keys; you can expand this list as needed.
     for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
     return found
 
 def get_unsplash_image_url(query: str) -> str | None:
-    """
-    Call Unsplash's search endpoint and return the URL of the first result.
-    Returns None on any error or if no results are found.
-    """
     if not UNSPLASH_KEY:
         return None
 
@@ -110,43 +175,56 @@ def get_unsplash_image_url(query: str) -> str | None:
     try:
         r = requests.get(url, params=params, timeout=8)
         if r.status_code != 200:
-            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
             return None
         data = r.json()
         results = data.get("results", [])
         if results:
-            # Use the regular‑size URL (good balance of quality/size)
             return results[0]["urls"]["regular"]
     except Exception:
         pass
     return None
 
 def get_image_url_for_model(model_key: str) -> str:
-    """
-    Try Unsplash first; if that fails or we have no key, fall back to the static map.
-    Always returns a valid URL (the fallback guarantees it).
-    """
-    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
     unsplash_url = get_unsplash_image_url(f"{model_key} car")
     if unsplash_url:
         return unsplash_url
-
-    # 2️⃣ Fallback to static map
     return FALLBACK_IMAGE_MAP.get(model_key,
                                   "https://via.placeholder.com/400x225?text=No+Image+Available")
 
+def get_background_style(model_key: str) -> str:
+    """Determine background style based on car brand"""
+    lowered = model_key.lower()
+    for brand, style in CAR_BACKGROUND_STYLES.items():
+        if brand in lowered:
+            return style
+    return ""  # Default gradient from CSS
+
 def show_car_images(model_keys):
-    """
-    Display images for the supplied model keys in a responsive grid.
-    """
+    """Display images with styled backgrounds"""
     if not model_keys:
         return
 
-    cols = st.columns(3)                     # 3 images per row – change as you like
+    st.markdown("### 🖼️ Car Models")
+    
+    # Create a responsive grid using columns
+    cols = st.columns(3)
+    
     for i, key in enumerate(model_keys):
         img_url = get_image_url_for_model(key)
+        bg_style = get_background_style(key)
+        
         with cols[i % 3]:
-            st.image(img_url, caption=key.title(), use_column_width=True)
+            # HTML container with background
+            st.markdown(f"""
+            <div class="car-image-container {bg_style}">
+                <div class="car-image-wrapper">
+                    <img src="{img_url}" 
+                         style="width: 100%; border-radius: 8px; object-fit: cover; max-height: 250px;"
+                         alt="{key}">
+                </div>
+            </div>
+            <div class="car-image-caption">{key.title()}</div>
+            """, unsafe_allow_html=True)
 
 # -------------------------------------------------
 # 6. UI SETUP
@@ -157,39 +235,51 @@ st.markdown("Ask me about specs, comparisons, or which car to buy!")
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
-# Render chat history (text + any previously shown images)
+# Render chat history
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if msg.get("role") == "assistant" and msg.get("image_keys"):
             show_car_images(msg["image_keys"])
 
-# -------------------- USER INPUT --------------------
+# User input
 if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
-    # Save & display user message
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get assistant answer
     with st.chat_message("assistant"):
         with st.spinner("Analyzing car specs…"):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
-
-            # Detect which car models we talked about
             car_keys = _extract_car_names(answer)
 
-            # Show the textual answer first
             st.markdown(answer)
 
-            # Then show any images we found (via Unsplash → fallback)
             if car_keys:
                 show_car_images(car_keys)
             else:
-                st.caption("_No recognisable car model detected – you can extend the detection list or add more fallback images._")
+                st.caption("_No recognisable car model detected._")
 
-            # Store assistant turn (including the keys so images survive a rerun)
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
+```
+
+## 🎨 Key Changes:
+
+1. **Custom CSS Gradients**: Added 4 background styles:
+   - `bg-modern` (Blue) - For Tesla/EV
+   - `bg-luxury` (Gold) - For BMW/Mercedes/Audi
+   - `bg-dark` (Dark Blue) - For Honda/Toyota
+   - `bg-sunset` (Orange) - For BYD
+
+2. **Smart Background Selection**: `get_background_style()` picks the background based on the car brand
+
+3. **Enhanced HTML Container**: White wrapper with shadow effects for better image visibility
+
+4. **Responsive Grid**: Uses Streamlit columns with proper spacing
+
+5. **Professional Styling**: Added shadows, rounded corners, and text shadows
+
+You can customize the gradients in the CSS section to match your preferences! 🎨
