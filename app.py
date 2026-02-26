@@ -193,3 +193,4 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
+
