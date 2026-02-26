@@ -17,7 +17,7 @@ st.set_page_config(
 # 1️⃣  SECRETS
 # -------------------------------------------------
 GROQ_KEY = st.secrets.get("GROQ_KEY", None)
-UNSPLASH_KEY = st.secrets.get("UNSPLASH_ACCESS_KEY", None)
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
 
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
@@ -321,3 +321,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
