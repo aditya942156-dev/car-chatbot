@@ -1,8 +1,3 @@
-# Updated Code with Background Styling
-
-Here's the modified code that displays car images with a suitable background:
-
-```python
 import streamlit as st
 import requests
 import re
@@ -264,22 +259,3 @@ if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
-```
-
-## 🎨 Key Changes:
-
-1. **Custom CSS Gradients**: Added 4 background styles:
-   - `bg-modern` (Blue) - For Tesla/EV
-   - `bg-luxury` (Gold) - For BMW/Mercedes/Audi
-   - `bg-dark` (Dark Blue) - For Honda/Toyota
-   - `bg-sunset` (Orange) - For BYD
-
-2. **Smart Background Selection**: `get_background_style()` picks the background based on the car brand
-
-3. **Enhanced HTML Container**: White wrapper with shadow effects for better image visibility
-
-4. **Responsive Grid**: Uses Streamlit columns with proper spacing
-
-5. **Professional Styling**: Added shadows, rounded corners, and text shadows
-
-You can customize the gradients in the CSS section to match your preferences! 🎨
