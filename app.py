@@ -19,7 +19,7 @@ def apply_car_theme():
         <style>
         /* Luxury Car Showroom Background with Dark Overlay */
         .stApp {
-            background-image: url("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80");
+            background-image: url("https://www.pexels.com/photo/photography-of-gray-sports-car-919073/");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -217,3 +217,4 @@ st.markdown("""
         © 2024 AI Car Consultant | Powered by Groq & Unsplash
     </div>
 """, unsafe_allow_html=True)
+
