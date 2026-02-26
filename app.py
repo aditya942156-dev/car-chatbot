@@ -1,221 +1,173 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""
-Streamlit snippet: set a suitable car‑themed background for your app.
-Run with:  streamlit run app_bg.py
-"""
-
-import base64
 import streamlit as st
-import requests   # only needed for fetching a remote image; harmless if you use a local file
+import requests
+from urllib.parse import quote
 
-# ----------------------------------------------------------------------
-# 1️⃣ PAGE CONFIG (keep it – it enables the wide layout we need)
-# ----------------------------------------------------------------------
+# -------------------------------------------------
+# 1. PAGE CONFIG
+# -------------------------------------------------
 st.set_page_config(
-    page_title="🚗 AI Car Consultant – Background Demo",
+    page_title="AI Car Consultant", 
     page_icon="🚗",
-    layout="wide",                # gives the background room to stretch
-    initial_sidebar_state="expanded",
+    layout="wide"
 )
 
-# ----------------------------------------------------------------------
-# 2️⃣ BACKGROUND SETTINGS
-# ----------------------------------------------------------------------
-# Choose **ONE** of the two ways to supply the image:
-#
-#   A) Public URL – e.g. an Unsplash photo, your own hosted picture, etc.
-#   B) Local file – drop an image (e.g. assets/bg.jpg) next to this script.
-#
-# ----------------------------------------------------------------------
-# ──────────────────────────────── Option A: Public URL ────────────────────────────────
-BACKGROUND_URL = (
-    "https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb"
-    "?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwyNzY1Nzl8MHwxfHJhbmRvbXx8fHx8fHx8fDE2OTk5NzYwNDg"
-    "&ixlib=rb-4.0.3&q=80&w=2000"
-)   # Replace with any direct image link you like.
-# ──────────────────────────────── Option B: Local file ────────────────────────────────
-# UNCOMMENT the next line and put your image (e.g. assets/bg.jpg) in the same folder.
-# BACKGROUND_PATH = "assets/bg.jpg"
-# ----------------------------------------------------------------------
-# Styling knobs – adjust to taste
-BACKGROUND_OPACITY = 0.35               # 0 = no overlay, 1 = completely black overlay
-BACKGROUND_GRADIENT = "to bottom"
-BACKGROUND_GRADIENT_COLORS = ("#0f172a", "#1e293b")   # dark‑blue‑gray gradient (feel free to change)
-
-# ----------------------------------------------------------------------
-# 3️⃣ HELPER: turn an image URL (or local file) into a Base64 string
-# ----------------------------------------------------------------------
-def _img_to_base64(url: str) -> str:
-    """Download an image from a URL and return a base64‑encoded string."""
-    try:
-        r = requests.get(url, timeout=10)
-        r.raise_for_status()
-        return base64.b64encode(r.content).decode()
-    except Exception as exc:
-        st.warning(f"⚠️ Could not fetch background image: {exc}")
-        return ""
-
-
-def set_background(
-    img_url: str,
-    *,
-    opacity: float = BACKGROUND_OPACITY,
-    gradient: str = BACKGROUND_GRADIENT,
-    gradient_colors: Tuple[str, str] = BACKGROUND_GRADIENT_COLORS,
-) -> None:
-    """
-    Inject CSS that:
-      • puts `img_url` as the page background,
-      • adds a dark gradient overlay for readability,
-      • gives the main container a frosted‑glass look,
-      • styles chat bubbles, input box & sidebar.
-    """
-    b64 = _img_to_base64(img_url)
-    if not b64:                               # fallback to a solid colour if we can't load the image
-        bg_css = f"background: {gradient_colors[0]};"
-    else:
-        bg_css = (
-            f"background: url('data:image/jpeg;base64,{b64}');"
-            f"background-size: cover;"
-            f"background-position: center;"
-            f"background-attachment: fixed;"
-        )
-
-    # Convert hex colours to RGB for the rgba() notation used in the gradient overlay
-    def hex_to_rgb(h: str) -> Tuple[int, int, int]:
-        h = h.lstrip("#")
-        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    r1, g1, b1 = hex_to_rgb(gradient_colors[0])
-    r2, g2, b2 = hex_to_rgb(gradient_colors[1])
-    overlay_css = (
-        f"background: linear-gradient({gradient}, "
-        f"rgba({r1},{g1},{b1},{opacity}), "
-        f"rgba({r2},{g2},{b2},{min(opacity+0.15, 1.0)});"
-    )
-
-    # ------------------------------------------------------------------
-    # Final CSS block – inject it once with st.markdown(..., unsafe_allow_html=True)
-    # ------------------------------------------------------------------
-    css = f"""
+# -------------------------------------------------
+# 2. FIXED CAR BACKGROUND CSS - MOBILE + DESKTOP OPTIMIZED
+# -------------------------------------------------
+st.markdown("""
     <style>
-        /* ---- PAGE BACKGROUND ---- */
-        .stApp {{
-            {bg_css}
-            {overlay_css}
-            color: #f8fafc;               /* light text for contrast */
-            font-family: 'Inter', sans-serif;
-        }}
-
-        /* ---- Main content container (frosted‑glass feel) ---- */
-        .block-container {{
-            background: rgba(0,0,0,0.35);
-            border-radius: 12px;
-            padding: 2rem;
-            backdrop-filter: blur(4px);
-        }}
-
-        /* ---- CHAT BUBBLES (you can keep or delete if you don't use chat) ---- */
-        .stChatMessage {{
-            border-radius: 16px;
-            padding: 0.9rem 1.2rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }}
-        .stChatMessage[data-testid="stChatMessage-user"] {{
-            background: rgba(30, 64, 175, 0.18);   /* soft blue */
-            border-left: 4px solid #1e40af;
-        }}
-        .stChatMessage[data-testid="stChatMessage-assistant"] {{
-            background: rgba(34, 197, 94, 0.15);   /* soft green */
-            border-left: 4px solid #16a34a;
-        }}
-
-        /* ---- INPUT BOX ---- */
-        .stTextInput > div > div > input {{
-            background: rgba(255,255,255,0.08);
-            color: #f8fafc;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-        }}
-        .stTextInput > div > div > input:focus {{
-            box-shadow: 0 0 0 2px rgba(30,64,175,0.4);
-        }}
-
-        /* ---- SIDEBAR (optional) ---- */
-        [data-testid="stSidebar"] {{
-            background: rgba(0,0,0,0.4);
-            backdrop-filter: blur(6px);
-        }}
-        [data-testid="stSidebar"] .stSelectbox,
-        [data-testid="stSidebar"] .stSlider,
-        [data-testid="stSidebar"] .stCheckbox {{
-            color: #e2e8f0;
-        }}
-
-        /* ---- Headings ---- */
-        h1, h2, h3 {{
-            color: #f1f5f9;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
-        }}
+    .stApp {
+        background: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), 
+                    url("https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&q=80&w=2000");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    .stChatMessage {
+        background: rgba(255, 255, 255, 0.05) !important;
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: white !important;
+    }
+    h1, h2, h3, p, li {
+        color: white !important;
+    }
+    .stImage > caption {
+        color: white !important;
+        font-weight: 600;
+    }
+    .stSpinner > div > div {
+        color: #4CAF50 !important;
+    }
     </style>
-    """
-    st.markdown(css, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-
-# ----------------------------------------------------------------------
-# 4️⃣ APPLY THE BACKGROUND (choose source)
-# ----------------------------------------------------------------------
-if "BACKGROUND_URL" in globals() and BACKGROUND_URL:
-    set_background(BACKGROUND_URL)                     # uses the public URL above
-elif "BACKGROUND_PATH" in globals():
-    # Local file – read & base64‑encode it
-    try:
-        with open(BACKGROUND_PATH, "rb") as f:
-            local_b64 = base64.b64encode(f.read()).decode()
-        set_background(f"data:image/jpeg;base64,{local_b64}")
-    except Exception as e:
-        st.error(f"❌ Could not load local background image: {e}")
-        st.stop()
-else:
-    st.error("❌ No background image source defined. Set BACKGROUND_URL or BACKGROUND_PATH.")
+# -------------------------------------------------
+# 3. LOAD SECRETS
+# -------------------------------------------------
+GROQ_KEY = st.secrets.get("GROQ_KEY")
+UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY")
+if not GROQ_KEY:
+    st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
 
-
-# ----------------------------------------------------------------------
-# 5️⃣ DEMO CONTENT (you can replace this with your actual car‑chatbot logic)
-# ----------------------------------------------------------------------
-st.title("🚗 AI Car Consultant – Background Demo")
-st.write(
+# -------------------------------------------------
+# 4. CAR MARKET CONTEXT
+# -------------------------------------------------
+def get_car_context():
+    return """
+    2024-2025 Car Market Data:
+    - EVs: Tesla Model 3 Highland (333mi), Hyundai Ioniq 6 (361mi), BYD Seal (323mi)
+    - Hybrids: Toyota RAV4 Hybrid (41 MPG), Honda CR-V Hybrid (40 MPG)
+    - Luxury: BMW i7, Mercedes EQS, Audi e-tron GT
+    - Budget: Toyota Corolla, Honda Civic, Hyundai Elantra
+    Trend: EV prices down 12%, hybrid sales up 28%
     """
-    This is a minimal Streamlit app that shows how to set a **car‑themed background**.  
-    Replace the demo text below with your own chatbot UI (chat_input, messages, etc.).
-    """
-)
 
-# Example of a simple chat‑like interaction (optional, just to see the styled bubbles)
-if "history" not in st.session_state:
-    st.session_state.history = []
+# -------------------------------------------------
+# 5. CAR IMAGE INSERTION FUNCTIONS
+# -------------------------------------------------
+# Fallback car images (if Unsplash fails/no key)
+FALLBACK_CAR_IMAGES = {
+    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
+    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
+    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
+    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
+    "toyota corolla": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/2020_Toyota_Corolla_SE.jpg/800px-2020_Toyota_Corolla_SE.jpg"
+}
 
-user_msg = st.text_input("Ask me about a car …", placeholder="e.g. Tell me about the Tesla Model 3")
-if st.button("Send") and user_msg.strip():
-    # Dummy reply – replace with your LLM call
-    bot_reply = f"You asked: *{user_msg}*. Here's a quick car fact: Electric vehicles are gaining market share fast!"
-    st.session_state.history.append(("user", user_msg))
-    st.session_state.history.append(("assistant", bot_reply))
+def extract_car_models(text: str):
+    """Extract car models from AI response"""
+    lowered_text = text.lower()
+    detected_models = []
+    for model in FALLBACK_CAR_IMAGES.keys():
+        if model in lowered_text and model not in detected_models:
+            detected_models.append(model)
+    return detected_models
 
-# Render the chat history with the same bubble styling Streamlit provides
-for role, msg in st.session_state.history:
-    with st.chat_message(role):
-        st.markdown(msg)
+def get_car_image_url(model: str):
+    """Fetch image from Unsplash or use fallback"""
+    if UNSPLASH_KEY:
+        try:
+            # Search for 2024 model car
+            url = f"https://api.unsplash.com/search/photos?query={quote(f'2024 {model} car')}&per_page=1&client_id={UNSPLASH_KEY}"
+            response = requests.get(url, timeout=8)
+            if response.status_code == 200 and response.json()["results"]:
+                return response.json()["results"][0]["urls"]["regular"]
+        except Exception:
+            pass
+    # Fallback to Wikipedia image
+    return FALLBACK_CAR_IMAGES.get(model, "https://via.placeholder.com/400x225?text=No+Image+Available")
 
-# ----------------------------------------------------------------------
-# 6️⃣ FOOTER (optional)
-# ----------------------------------------------------------------------
-st.divider()
-st.caption(
-    "Background image sourced from Unsplash (replace with your own). "
-    "Feel free to tweak colours, opacity, gradient, etc. to match your brand."
-)
+def display_car_images(models):
+    """Show car images in responsive grid"""
+    if not models:
+        return
+    cols = st.columns(min(3, len(models)))
+    for idx, model in enumerate(models):
+        with cols[idx % 3]:
+            st.image(get_car_image_url(model), caption=model.title(), use_column_width=True)
+
+# -------------------------------------------------
+# 6. GROQ AI CHATBOT
+# -------------------------------------------------
+def groq_car_chat(prompt: str, context: str) -> str:
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "llama-3.1-8b-instant",
+        "messages": [
+            {"role": "system", "content": "You are a professional car expert. Provide detailed, helpful advice with pros/cons and specs."},
+            {"role": "user", "content": f"CONTEXT: {context}\n\nQUESTION: {prompt}"}
+        ],
+        "temperature": 0.6
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"⚠️ Error: {str(e)}"
+
+# -------------------------------------------------
+# 7. MAIN CHAT UI
+# -------------------------------------------------
+st.title("🚗 AI Car Consultant")
+st.markdown("### Your trusted automotive expert for specs, comparisons, and buying advice")
+
+# Initialize chat history
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [{"role": "assistant", "content": "Hi! 👋 Ask me anything about cars.", "models": []}]
+
+# Render chat history
+for msg in st.session_state.chat_history:
+    with st.chat_message(msg["role"], avatar="👤" if msg["role"] == "user" else "🚗"):
+        st.markdown(msg["content"])
+        display_car_images(msg["models"])
+
+# User input
+if user_prompt := st.chat_input("Type your question... e.g., 'Should I buy a Tesla Model 3 or Hyundai Ioniq 6?'"):
+    # Add user message to history
+    st.session_state.chat_history.append({"role": "user", "content": user_prompt, "models": []})
+    with st.chat_message("user", avatar="👤"):
+        st.markdown(user_prompt)
+
+    # Generate AI response
+    with st.chat_message("assistant", avatar="🚗"):
+        with st.spinner("Analyzing your request..."):
+            context = get_car_context()
+            ai_response = groq_car_chat(user_prompt, context)
+            detected_models = extract_car_models(ai_response)
+            
+            # Show response and images
+            st.markdown(ai_response)
+            display_car_images(detected_models)
+            
+            # Save to chat history
+            st.session_state.chat_history.append({"role": "assistant", "content": ai_response, "models": detected_models})
