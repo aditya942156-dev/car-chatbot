@@ -6,7 +6,67 @@ from urllib.parse import quote
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wide")
+
+# -------------------------------------------------
+# 1.5  BACKGROUND IMAGE CSS (LOCAL FILE IN /static/bg.jpg)
+# -------------------------------------------------
+# Your image must be at: project_root/static/bg.jpg
+BG_IMAGE_URL = "/static/bg.jpg"
+
+st.markdown(
+    f"""
+    <style>
+    /* Full‑page background */
+    .stApp {{
+        background-image: url("{BG_IMAGE_URL}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+
+    /* Dark overlay for readability - adjusted for your dark car background */
+    .stApp::before {{
+        content: "";
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.15);
+        z-index: -1;
+    }}
+
+    /* Global text color */
+    .stApp {{ color: #ffffff !important; }}
+
+    /* Chat message styling */
+    div.stChatMessage.user div.stChatMessageContent {{
+        background-color: rgba(255, 255, 255, 0.88) !important;
+        color: black !important;
+        border-radius: 10px;
+        padding: 10px;
+    }}
+    div.stChatMessage.assistant div.stChatMessageContent {{
+        background-color: rgba(0, 0, 0, 0.65) !important;
+        color: white !important;
+        border-radius: 12px;
+        padding: 12px;
+    }}
+
+    /* Input box (works for latest Streamlit versions) */
+    div[data-testid="stChatInput"] textarea {{
+        background-color: rgba(255,255,255,0.92) !important;
+        color: black !important;
+        border-radius: 8px;
+    }}
+
+    /* Optional: hide Streamlit's default menu/footer */
+    #MainMenu {{ visibility: hidden; }}
+    footer {{ visibility: hidden; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # -------------------------------------------------
 # 2. SECRETS
@@ -86,8 +146,6 @@ def _extract_car_names(text: str):
     """
     lowered = text.lower()
     found = []
-    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
-    # For simplicity we just scan the fallback keys; you can expand this list as needed.
     for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
@@ -110,12 +168,10 @@ def get_unsplash_image_url(query: str) -> str | None:
     try:
         r = requests.get(url, params=params, timeout=8)
         if r.status_code != 200:
-            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
             return None
         data = r.json()
         results = data.get("results", [])
         if results:
-            # Use the regular‑size URL (good balance of quality/size)
             return results[0]["urls"]["regular"]
     except Exception:
         pass
@@ -126,14 +182,14 @@ def get_image_url_for_model(model_key: str) -> str:
     Try Unsplash first; if that fails or we have no key, fall back to the static map.
     Always returns a valid URL (the fallback guarantees it).
     """
-    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
     unsplash_url = get_unsplash_image_url(f"{model_key} car")
     if unsplash_url:
         return unsplash_url
 
-    # 2️⃣ Fallback to static map
-    return FALLBACK_IMAGE_MAP.get(model_key,
-                                  "https://via.placeholder.com/400x225?text=No+Image+Available")
+    return FALLBACK_IMAGE_MAP.get(
+        model_key,
+        "https://via.placeholder.com/400x225?text=No+Image+Available",
+    )
 
 def show_car_images(model_keys):
     """
@@ -142,7 +198,7 @@ def show_car_images(model_keys):
     if not model_keys:
         return
 
-    cols = st.columns(3)                     # 3 images per row – change as you like
+    cols = st.columns(3)
     for i, key in enumerate(model_keys):
         img_url = get_image_url_for_model(key)
         with cols[i % 3]:
