@@ -1,87 +1,15 @@
 import streamlit as st
 import requests
+import re
 from urllib.parse import quote
 
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(
-    page_title="AI Car Consultant", 
-    page_icon="🚗",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
 
 # -------------------------------------------------
-# 2. PROFESSIONAL CAR BACKGROUND + UI STYLING
-# -------------------------------------------------
-st.markdown(
-    """
-    <style>
-    /* 🔹 CAR BACKGROUND (Responsive for Mobile & Desktop) */
-    .stApp {
-        background: linear-gradient(rgba(10, 12, 15, 0.85), rgba(10, 12, 15, 0.85)),
-                    url("https://images.unsplash.com/photo-1617814076367-b759c7d7e739?auto=format&fit=crop&w=1920&q=80");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-    }
-
-    /* 🔹 TEXT COLORS (White for readability) */
-    h1, h2, h3, p, .stMarkdown, .stCaption {
-        color: #ffffff !important;
-        font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-    }
-
-    /* 🔹 CHAT BUBBLES (Glassmorphism effect) */
-    .stChatMessage {
-        background: rgba(255, 255, 255, 0.07) !important;
-        backdrop-filter: blur(12px);
-        border-radius: 18px;
-        border: 1px solid rgba(255,255,255,0.12);
-        color: white !important;
-        padding: 18px;
-        margin-bottom: 16px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-    }
-
-    /* 🔹 CHAT INPUT FIELD */
-    .stChatInput {
-        background: rgba(255,255,255,0.08) !important;
-        border: 1px solid rgba(255,255,255,0.15) !important;
-        border-radius: 16px;
-        color: white !important;
-        padding: 12px 16px;
-    }
-
-    /* 🔹 IMAGE CAPTIONS */
-    .stImage > caption {
-        color: #e0e0e0 !important;
-        font-weight: 600;
-        font-size: 0.95rem;
-    }
-
-    /* 🔹 SPINNER COLOR */
-    .stSpinner > div > div {
-        color: #4CAF50 !important;
-    }
-
-    /* 🔹 FOOTER */
-    .footer {
-        text-align: center;
-        margin-top: 40px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.7);
-        font-size: 0.85rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# -------------------------------------------------
-# 3. SECRETS
+# 2. SECRETS
 # -------------------------------------------------
 GROQ_KEY   = st.secrets.get("GROQ_KEY", None)
 UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)   # <-- free Unsplash access key
@@ -90,10 +18,11 @@ if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
 if not UNSPLASH_KEY:
-    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to static images.")
+    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a tiny static map.")
+    # You can still run the app; images just won’t appear unless they’re in the fallback map.
 
 # -------------------------------------------------
-# 4. CAR CONTEXT (simulated live market data)
+# 3. CAR CONTEXT (simulated live market data)
 # -------------------------------------------------
 def get_car_context():
     return """
@@ -106,7 +35,7 @@ def get_car_context():
     """
 
 # -------------------------------------------------
-# 5. GROQ API CALL
+# 4. GROQ API CALL
 # -------------------------------------------------
 def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -119,22 +48,21 @@ def groq_car_chat(prompt: str, context: str) -> str:
         "messages": [
             {"role": "system", "content":
                 "You are a professional Car Expert. You know everything about engine specs, mileage, EV range, and car comparisons. "
-                "Be helpful and give pros/cons. Keep answers concise."},
+                "Be helpful and give pros/cons."},
             {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
         ],
         "temperature": 0.7,
     }
 
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=10)
-        resp.raise_for_status()
+    resp = requests.post(url, headers=headers, json=payload)
+    if resp.status_code == 200:
         return resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"⚠️ Error: {str(e)}"
+    return f"Error: {resp.text}"
 
 # -------------------------------------------------
-# 6. HELPERS – extract car names & fetch images
+# 5. HELPERS – extract car names & fetch images
 # -------------------------------------------------
+# A very small static fallback (used only when Unsplash fails or the key is missing)
 FALLBACK_IMAGE_MAP = {
     "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
     "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
@@ -152,14 +80,24 @@ FALLBACK_IMAGE_MAP = {
 }
 
 def _extract_car_names(text: str):
+    """
+    Return a list of unique, lower‑case car model substrings that we know about.
+    The check is a simple substring search – good enough for the limited set we expect.
+    """
     lowered = text.lower()
     found = []
+    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
+    # For simplicity we just scan the fallback keys; you can expand this list as needed.
     for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
     return found
 
 def get_unsplash_image_url(query: str) -> str | None:
+    """
+    Call Unsplash's search endpoint and return the URL of the first result.
+    Returns None on any error or if no results are found.
+    """
     if not UNSPLASH_KEY:
         return None
 
@@ -171,40 +109,55 @@ def get_unsplash_image_url(query: str) -> str | None:
     }
     try:
         r = requests.get(url, params=params, timeout=8)
-        if r.status_code == 200:
-            data = r.json()
-            results = data.get("results", [])
-            if results:
-                return results[0]["urls"]["regular"]
+        if r.status_code != 200:
+            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
+            return None
+        data = r.json()
+        results = data.get("results", [])
+        if results:
+            # Use the regular‑size URL (good balance of quality/size)
+            return results[0]["urls"]["regular"]
     except Exception:
         pass
     return None
 
 def get_image_url_for_model(model_key: str) -> str:
-    unsplash_url = get_unsplash_image_url(f"{model_key} car 2024")
+    """
+    Try Unsplash first; if that fails or we have no key, fall back to the static map.
+    Always returns a valid URL (the fallback guarantees it).
+    """
+    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
+    unsplash_url = get_unsplash_image_url(f"{model_key} car")
     if unsplash_url:
         return unsplash_url
-    return FALLBACK_IMAGE_MAP.get(model_key, "https://via.placeholder.com/400x225?text=No+Image")
+
+    # 2️⃣ Fallback to static map
+    return FALLBACK_IMAGE_MAP.get(model_key,
+                                  "https://via.placeholder.com/400x225?text=No+Image+Available")
 
 def show_car_images(model_keys):
+    """
+    Display images for the supplied model keys in a responsive grid.
+    """
     if not model_keys:
         return
-    cols = st.columns(min(3, len(model_keys)))
+
+    cols = st.columns(3)                     # 3 images per row – change as you like
     for i, key in enumerate(model_keys):
+        img_url = get_image_url_for_model(key)
         with cols[i % 3]:
-            img_url = get_image_url_for_model(key)
             st.image(img_url, caption=key.title(), use_column_width=True)
 
 # -------------------------------------------------
-# 7. UI SETUP
+# 6. UI SETUP
 # -------------------------------------------------
 st.title("🚗 AI Car Consultant")
-st.markdown("**Ask me about specs, comparisons, buying advice, or market trends!**")
+st.markdown("Ask me about specs, comparisons, or which car to buy!")
 
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
-# Render chat history
+# Render chat history (text + any previously shown images)
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
@@ -213,31 +166,30 @@ for msg in st.session_state.car_messages:
 
 # -------------------- USER INPUT --------------------
 if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
+    # Save & display user message
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Get assistant answer
     with st.chat_message("assistant"):
         with st.spinner("Analyzing car specs…"):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
+
+            # Detect which car models we talked about
             car_keys = _extract_car_names(answer)
 
+            # Show the textual answer first
             st.markdown(answer)
+
+            # Then show any images we found (via Unsplash → fallback)
             if car_keys:
                 show_car_images(car_keys)
             else:
-                st.caption("_No recognisable car model detected._")
+                st.caption("_No recognisable car model detected – you can extend the detection list or add more fallback images._")
 
+            # Store assistant turn (including the keys so images survive a rerun)
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "image_keys": car_keys}
             )
-
-# -------------------------------------------------
-# 8. FOOTER
-# -------------------------------------------------
-st.markdown("""
-<div class="footer">
-    © 2024 AI Car Consultant | Data updated 2024‑Q3 | Powered by Groq & Unsplash
-</div>
-""", unsafe_allow_html=True)
