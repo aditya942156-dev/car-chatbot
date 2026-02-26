@@ -6,7 +6,34 @@ from urllib.parse import quote
 # -------------------------------------------------
 # 1. PAGE CONFIG
 # -------------------------------------------------
-st.set_page_config(page_title="AI Car Consultant", page_icon="🚗")
+st.set_page_config(page_title="AI Car Consultant", page_icon="🚗", layout="wide")
+
+# ==================================================
+# ✅ NEW ADDED: PERFECT FIT CAR BACKGROUND + PREMIUM UI STYLING
+# ==================================================
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.78)),
+    url("https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=2000&q=80");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+}
+
+h1, h2, h3, p, li {
+    color: white !important;
+}
+
+.stChatMessage {
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+</style>
+""", unsafe_allow_html=True)
 
 # -------------------------------------------------
 # 2. SECRETS
@@ -18,8 +45,7 @@ if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
 if not UNSPLASH_KEY:
-    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a tiny static map.")
-    # You can still run the app; images just won’t appear unless they’re in the fallback map.
+    st.warning("⚠️ UNSPLASH_KEY not set – image lookup will fall back to a static images.")
 
 # -------------------------------------------------
 # 3. CAR CONTEXT (simulated live market data)
@@ -86,8 +112,6 @@ def _extract_car_names(text: str):
     """
     lowered = text.lower()
     found = []
-    # We’ll look at both the fallback map and (if we have a key) any term that looks like a car.
-    # For simplicity we just scan the fallback keys; you can expand this list as needed.
     for key in FALLBACK_IMAGE_MAP:
         if key in lowered and key not in found:
             found.append(key)
@@ -110,12 +134,10 @@ def get_unsplash_image_url(query: str) -> str | None:
     try:
         r = requests.get(url, params=params, timeout=8)
         if r.status_code != 200:
-            # Unsplash may return 403/429 if we exceed rate‑limits – just fallback.
             return None
         data = r.json()
         results = data.get("results", [])
         if results:
-            # Use the regular‑size URL (good balance of quality/size)
             return results[0]["urls"]["regular"]
     except Exception:
         pass
@@ -126,12 +148,10 @@ def get_image_url_for_model(model_key: str) -> str:
     Try Unsplash first; if that fails or we have no key, fall back to the static map.
     Always returns a valid URL (the fallback guarantees it).
     """
-    # 1️⃣ Try Unsplash with a more natural phrase (e.g. "2024 Tesla Model 3")
     unsplash_url = get_unsplash_image_url(f"{model_key} car")
     if unsplash_url:
         return unsplash_url
 
-    # 2️⃣ Fallback to static map
     return FALLBACK_IMAGE_MAP.get(model_key,
                                   "https://via.placeholder.com/400x225?text=No+Image+Available")
 
@@ -142,7 +162,7 @@ def show_car_images(model_keys):
     if not model_keys:
         return
 
-    cols = st.columns(3)                     # 3 images per row – change as you like
+    cols = st.columns(3)
     for i, key in enumerate(model_keys):
         img_url = get_image_url_for_model(key)
         with cols[i % 3]:
