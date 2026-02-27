@@ -218,22 +218,23 @@ FALLBACK_IMAGE_MAP = {
     "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hyundai_i20.jpg/800px-Hyundai_i20.jpg",
 }
 
-def _extract_car_names(text: str):
+def _extract_car_names_from_prompt(prompt: str):
     """
-    Improved car name extraction that handles:
-    - Partial matches (e.g., "Punch" matches "Tata Punch")
-    - Multiple word variations
-    - Indian car models specifically
+    Extract car names specifically from the user's prompt.
+    This ensures we only show images for cars the user asked about.
     """
-    lowered = text.lower()
+    lowered = prompt.lower()
     found = []
     
-    # First check for exact matches with our known models
+    # Check for exact matches with our known models
     for key in FALLBACK_IMAGE_MAP:
-        if key in lowered and key not in found:
+        # Use word boundaries to avoid partial matches
+        # e.g., "punch" should match "tata punch" but not "punching"
+        pattern = r'\b' + re.escape(key) + r'\b'
+        if re.search(pattern, lowered) and key not in found:
             found.append(key)
     
-    # If no matches found, try more flexible matching for Indian cars
+    # If no exact matches, try keyword matching for Indian cars
     if not found:
         indian_car_keywords = {
             "punch": "tata punch",
@@ -255,7 +256,9 @@ def _extract_car_names(text: str):
         }
         
         for keyword, full_name in indian_car_keywords.items():
-            if keyword in lowered and full_name not in found:
+            # Use word boundaries for keywords too
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, lowered) and full_name not in found:
                 found.append(full_name)
     
     return found
@@ -319,11 +322,15 @@ if "car_messages" not in st.session_state:
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg.get("role") == "assistant" and msg.get("image_keys"):
-            show_car_images(msg["image_keys"])
+        # Only show images for cars that were in the USER'S original prompt
+        if msg.get("role") == "assistant" and msg.get("user_car_keys"):
+            show_car_images(msg["user_car_keys"])
 
 # User input
 if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommendations..."):
+    # Extract car names from the USER'S prompt
+    user_car_keys = _extract_car_names_from_prompt(prompt)
+    
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -332,12 +339,15 @@ if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommend
         with st.spinner("Analyzing premium vehicle data..."):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
-            car_keys = _extract_car_names(answer)
             st.markdown(answer)
-            if car_keys:
-                show_car_images(car_keys)
+            
+            # Show images ONLY for cars the user asked about
+            if user_car_keys:
+                show_car_images(user_car_keys)
             else:
-                st.caption("_No specific car models detected in response_")
+                st.caption("_No specific car models detected in your question_")
+            
+            # Store the assistant response along with the user's car keys
             st.session_state.car_messages.append(
-                {"role": "assistant", "content": answer, "image_keys": car_keys}
+                {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
             )
