@@ -57,7 +57,7 @@ st.markdown("""
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Chat Message Bubbles */
+/* Chat UI Enhancements */
 .stChatMessage {
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(12px);
@@ -76,45 +76,60 @@ st.markdown("""
     border-left: 4px solid #ff6b35;
 }
 
-/* =========================================
-   NEW: PREMIUM CHAT INPUT BOX STYLING
-   ========================================= */
-/* The main container for the chat input */
-[data-testid="stChatInput"] {
-    background-color: rgba(15, 15, 15, 0.85) !important;
-    backdrop-filter: blur(15px) !important;
-    border: 1px solid rgba(255, 107, 53, 0.3) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
-    padding: 2px !important;
-    transition: all 0.3s ease-in-out !important;
+/* Custom Chat Input Container */
+.chat-input-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem 0;
 }
 
-/* Glow effect when user clicks/focuses on the input box */
-[data-testid="stChatInput"]:focus-within {
-    border: 1px solid #ff6b35 !important;
-    box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 8px 32px rgba(0,0,0,0.6) !important;
-    transform: translateY(-2px);
+.chat-input-label {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: block;
+    text-align: center;
 }
 
-/* The actual text typing area */
-[data-testid="stChatInputTextArea"] {
-    color: #ffffff !important;
-    font-size: 1.05rem !important;
+/* Custom placeholder styling */
+.stTextInput>div>div>input::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-style: italic;
 }
 
-/* Send Button inside the chat input */
-[data-testid="stChatInputSubmitButton"] {
+.stTextInput>div>div>input {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 14px 20px !important;
+    font-size: 1.1rem !important;
+    width: 100% !important;
+    transition: all 0.3s ease !important;
+}
+
+.stTextInput>div>div>input:focus {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: #ff6b35 !important;
+    box-shadow: 0 0 0 2px rgba(255, 107, 53, 0.3) !important;
+}
+
+.stButton>button {
     background: linear-gradient(135deg, #ff6b35, #f7931e) !important;
-    border-radius: 50% !important;
     color: white !important;
     border: none !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    border-radius: 10px !important;
+    padding: 10px 24px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    transition: all 0.3s ease !important;
+    display: block !important;
+    margin: 1rem auto 0 !important;
 }
 
-[data-testid="stChatInputSubmitButton"]:hover {
-    transform: scale(1.15) !important;
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
+.stButton>button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(255, 107, 53, 0.4) !important;
 }
 
 /* Car Image Cards */
@@ -136,6 +151,50 @@ st.markdown("""
     padding: 8px;
     background: rgba(0,0,0,0.5);
     margin-top: -4px;
+}
+
+/* Examples section */
+.examples-container {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem auto;
+    max-width: 800px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.examples-title {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.2rem;
+    margin-bottom: 0.8rem;
+    text-align: center;
+}
+
+.examples-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.8rem;
+}
+
+.example-item {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 0.8rem;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.example-item:hover {
+    background: rgba(255, 107, 53, 0.2);
+    transform: translateY(-2px);
+}
+
+.example-text {
+    color: white;
+    font-size: 0.95rem;
+    margin: 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -331,6 +390,27 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Examples section to guide users
+st.markdown("""
+<div class="examples-container">
+    <div class="examples-title">Try asking about:</div>
+    <div class="examples-grid">
+        <div class="example-item" onclick="document.querySelector('.stTextInput input').value='Tell me about Tata Punch'">
+            <p class="example-text">Tata Punch</p>
+        </div>
+        <div class="example-item" onclick="document.querySelector('.stTextInput input').value='Mahindra Thar vs Tata Safari'">
+            <p class="example-text">Mahindra Thar vs Tata Safari</p>
+        </div>
+        <div class="example-item" onclick="document.querySelector('.stTextInput input').value='Tesla Model 3 specs'">
+            <p class="example-text">Tesla Model 3 specs</p>
+        </div>
+        <div class="example-item" onclick="document.querySelector('.stTextInput input').value='Best SUV under 20 lakhs'">
+            <p class="example-text">Best SUV under 20 lakhs</p>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
@@ -342,8 +422,10 @@ for msg in st.session_state.car_messages:
         if msg.get("role") == "assistant" and msg.get("user_car_keys"):
             show_car_images(msg["user_car_keys"])
 
-# User input
-if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommendations..."):
+# Custom chat input section
+st.markdown('<p class="chat-input-label">Ask about any car model, specs, or comparisons:</p>', unsafe_allow_html=True)
+
+if prompt := st.chat_input("Ex: Should I buy a Tesla Model 3 or a BMW i4?"):
     # Extract car names from the USER'S prompt
     user_car_keys = _extract_car_names_from_prompt(prompt)
     
