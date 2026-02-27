@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import re
-from urllib.parse import quote
 
 # ==================================================
 # 1. PAGE CONFIG & PREMIUM UI STYLING
@@ -10,7 +9,6 @@ st.set_page_config(page_title="EliteDrive AI", page_icon="🏎️", layout="wide
 
 st.markdown("""
 <style>
-/* Premium Background */
 .stApp {
     background: linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.75)),
     url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=2000&q=80");
@@ -21,7 +19,6 @@ st.markdown("""
     min-height: 100vh;
 }
 
-/* EliteDrive Title - Premium Car Theme */
 .title-container {
     text-align: center;
     margin-bottom: 1rem;
@@ -37,15 +34,12 @@ st.markdown("""
     font-family: 'Arial Black', sans-serif;
     font-size: 3.5rem !important;
     font-weight: 900 !important;
-    color: #ffffff;
-    text-shadow: 0 0 10px rgba(255, 107, 53, 0.7),
-                 0 0 20px rgba(255, 107, 53, 0.5);
-    letter-spacing: 2px;
-    margin-bottom: 0.5rem;
     background: linear-gradient(90deg, #ff6b35, #f7931e);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
 }
 
 .tagline {
@@ -57,7 +51,6 @@ st.markdown("""
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Chat UI Enhancements */
 .stChatMessage {
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(12px);
@@ -85,23 +78,6 @@ st.markdown("""
     font-size: 1rem;
 }
 
-.stButton>button {
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 24px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stButton>button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(255, 107, 53, 0.4);
-}
-
-/* Car Image Cards */
 .car-image-card {
     border-radius: 12px;
     overflow: hidden;
@@ -133,29 +109,22 @@ UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
-if not UNSPLASH_KEY:
-    st.warning("⚠️ UNSPLASH_KEY not set - using fallback images")
 
 # ==================================================
 # 3. CAR CONTEXT
 # ==================================================
 def get_car_context():
     return """
-    Current Trending Cars (2024-2025):
-    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal, Lucid Air
-    - Performance: Porsche Taycan, BMW M5, Audi RS e-tron GT
-    - Luxury: Mercedes-Maybach EQS, Rolls-Royce Spectre, Bentley Bentayga
-    - SUVs: Range Rover Sport, Lexus RX, Volvo EX90
-    - Budget: Toyota Corolla Hybrid, Honda Civic, Hyundai Kona Electric
-    - Indian Market: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift
-    Market Trends: 40% EV adoption in premium segments, 25% price premium for performance EVs
+    Current Trending Cars 2025:
+    - Indian Market: Tata Punch, Tata Nexon, Tata Harrier, Mahindra Thar, Mahindra Scorpio N, Mahindra XUV700, Hyundai Creta, Kia Seltos, Maruti Swift, Innova Crysta, Honda City, Hyundai Verna
+    - International: Tesla Model 3, Hyundai Ioniq 6, BYD Seal, Toyota RAV4
     """
 
 # ==================================================
 # 4. GROQ API CALL
 # ==================================================
 def groq_car_chat(prompt: str, context: str) -> str:
-    url = "https://api.groq.com/openai/v1/chat/completions"
+    url = "https://api.groq.com/open/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_KEY}",
         "Content-Type": "application/json",
@@ -164,9 +133,7 @@ def groq_car_chat(prompt: str, context: str) -> str:
         "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "system", "content":
-                "You are EliteDrive AI - a premium car consultant with expertise in luxury, performance, and electric vehicles. "
-                "Provide detailed comparisons, technical specifications, and market insights with a sophisticated tone. "
-                "Always include pros/cons, real-world range estimates for EVs, and ownership cost analysis."},
+                "You are a professional car consultant. Give honest pros and cons, specs and real world advice."},
             {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
         ],
         "temperature": 0.7,
@@ -178,28 +145,10 @@ def groq_car_chat(prompt: str, context: str) -> str:
     return f"Error: {resp.text}"
 
 # ==================================================
-# 5. IMAGE HANDLING - ENHANCED WITH INDIAN CARS
+# 5. IMAGE HANDLING - FULLY CORRECTED
 # ==================================================
 FALLBACK_IMAGE_MAP = {
-    # International models
-    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
-    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
-    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
-    "honda cr-v": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
-    "kia sportage": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
-    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
-    "mercedes eqs": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
-    "audi e-tron gt": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
-    "porsche taycan": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2021_Porsche_Taycan_4S.jpg/800px-2021_Porsche_Taycan_4S.jpg",
-    "lucid air": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Lucid_Air_Dream_Edition.jpg/800px-Lucid_Air_Dream_Edition.jpg",
-    "rolls-royce spectre": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Rolls-Royce_Spectre_2023.jpg/800px-Rolls-Royce_Spectre_2023.jpg",
-    "range rover sport": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2022_Range_Rover_Sport_Autobiography.jpg/800px-2022_Range_Rover_Sport_Autobiography.jpg",
-    "lexus rx": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/2023_Lexus_RX_350h_F_Sport.jpg/800px-2023_Lexus_RX_350h_F_Sport.jpg",
-    "volvo ex90": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Volvo_EX90_2024.jpg/800px-Volvo_EX90_2024.jpg",
-    
-    # Indian car models
+    # Indian cars
     "tata punch": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Tata_Punch.jpg/800px-Tata_Punch.jpg",
     "tata nexon": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Tata_Nexon_EV.jpg/800px-Tata_Nexon_EV.jpg",
     "tata harrier": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Tata_Harrier.jpg/800px-Tata_Harrier.jpg",
@@ -209,87 +158,26 @@ FALLBACK_IMAGE_MAP = {
     "mahindra xuv700": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahindra_XUV700.jpg/800px-Mahindra_XUV700.jpg",
     "hyundai creta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Hyundai_Creta.jpg/800px-Hyundai_Creta.jpg",
     "kia seltos": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Kia_Seltos.jpg/800px-Kia_Seltos.jpg",
-    "maruti suzuki swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maruti_Suzuki_Swift.jpg/800px-Maruti_Suzuki_Swift.jpg",
-    "maruti suzuki baleno": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Maruti_Suzuki_Baleno.jpg/800px-Maruti_Suzuki_Baleno.jpg",
-    "maruti suzuki grand vitara": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Maruti_Suzuki_Grand_Vitara.jpg/800px-Maruti_Suzuki_Grand_Vitara.jpg",
-    "toyota innova crysta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Toyota_Innova_Crysta.jpg/800px-Toyota_Innova_Crysta.jpg",
+    "maruti swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maruti_Suzuki_Swift.jpg/800px-Maruti_Suzuki_Swift.jpg",
     "honda city": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Honda_City.jpg/800px-Honda_City.jpg",
     "hyundai verna": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Hyundai_Verna.jpg/800px-Hyundai_Verna.jpg",
-    "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hyundai_i20.jpg/800px-Hyundai_i20.jpg",
+
+    # International cars
+    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
 }
 
-def _extract_car_names_from_prompt(prompt: str):
-    """
-    Extract car names specifically from the user's prompt.
-    This ensures we only show images for cars the user asked about.
-    """
-    lowered = prompt.lower()
+def extract_cars_from_text(text: str):
+    """Exact matching only, no false positives"""
+    lowered = text.lower()
     found = []
-    
-    # Check for exact matches with our known models
-    for key in FALLBACK_IMAGE_MAP:
-        # Use word boundaries to avoid partial matches
-        # e.g., "punch" should match "tata punch" but not "punching"
-        pattern = r'\b' + re.escape(key) + r'\b'
-        if re.search(pattern, lowered) and key not in found:
-            found.append(key)
-    
-    # If no exact matches, try keyword matching for Indian cars
-    if not found:
-        indian_car_keywords = {
-            "punch": "tata punch",
-            "nexon": "tata nexon",
-            "harrier": "tata harrier",
-            "safari": "tata safari",
-            "thar": "mahindra thar",
-            "scorpio": "mahindra scorpio",
-            "xuv700": "mahindra xuv700",
-            "creta": "hyundai creta",
-            "seltos": "kia seltos",
-            "swift": "maruti suzuki swift",
-            "baleno": "maruti suzuki baleno",
-            "grand vitara": "maruti suzuki grand vitara",
-            "innova crysta": "toyota innova crysta",
-            "city": "honda city",
-            "verna": "hyundai verna",
-            "i20": "hyundai i20",
-        }
-        
-        for keyword, full_name in indian_car_keywords.items():
-            # Use word boundaries for keywords too
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, lowered) and full_name not in found:
-                found.append(full_name)
-    
+    for car_name in FALLBACK_IMAGE_MAP.keys():
+        if car_name in lowered:
+            found.append(car_name)
     return found
 
-def get_unsplash_image_url(query: str) -> str | None:
-    if not UNSPLASH_KEY:
-        return None
-    url = "https://api.unsplash.com/search/photos"
-    params = {
-        "query": f"{query} car",
-        "per_page": 1,
-        "client_id": UNSPLASH_KEY,
-    }
-    try:
-        r = requests.get(url, params=params, timeout=8)
-        if r.status_code != 200:
-            return None
-        data = r.json()
-        results = data.get("results", [])
-        if results:
-            return results[0]["urls"]["regular"]
-    except Exception:
-        pass
-    return None
-
 def get_image_url_for_model(model_key: str) -> str:
-    unsplash_url = get_unsplash_image_url(model_key)
-    if unsplash_url:
-        return unsplash_url
-    return FALLBACK_IMAGE_MAP.get(model_key,
-                                 "https://via.placeholder.com/400x225?text=Premium+Car+Image")
+    return FALLBACK_IMAGE_MAP.get(model_key)
 
 def show_car_images(model_keys):
     if not model_keys:
@@ -306,12 +194,12 @@ def show_car_images(model_keys):
             """, unsafe_allow_html=True)
 
 # ==================================================
-# 6. MAIN UI
+# 6. MAIN UI AND FIXED LOGIC
 # ==================================================
 st.markdown("""
 <div class="title-container">
     <div class="elite-title">ELITEDRIVE AI</div>
-    <div class="tagline">Your Premium Car Consultant</div>
+    <div class="tagline">Your Car Consultant</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -322,32 +210,45 @@ if "car_messages" not in st.session_state:
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        # Only show images for cars that were in the USER'S original prompt
-        if msg.get("role") == "assistant" and msg.get("user_car_keys"):
-            show_car_images(msg["user_car_keys"])
+        if msg.get("image_keys"):
+            show_car_images(msg["image_keys"])
 
 # User input
-if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommendations..."):
-    # Extract car names from the USER'S prompt
-    user_car_keys = _extract_car_names_from_prompt(prompt)
-    
+if prompt := st.chat_input("Ask about any car..."):
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing premium vehicle data..."):
+        with st.spinner("Analyzing car data..."):
+
+            # --------------------------
+            # THE FIXED LOGIC IS HERE
+            # --------------------------
+            # 1. FIRST extract cars FROM WHAT THE USER ACTUALLY ASKED
+            user_cars = extract_cars_from_text(prompt)
+
+            # 2. Get answer from AI
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
-            st.markdown(answer)
-            
-            # Show images ONLY for cars the user asked about
-            if user_car_keys:
-                show_car_images(user_car_keys)
+
+            # 3. IMPORTANT RULE:
+            # If we found any cars in the user's prompt, WE ONLY USE THOSE.
+            # We completely ignore any other cars mentioned by the AI.
+            if user_cars:
+                cars_to_show = user_cars
             else:
-                st.caption("_No specific car models detected in your question_")
-            
-            # Store the assistant response along with the user's car keys
+                # Only fall back to the AI answer if we found nothing at all
+                cars_to_show = extract_cars_from_text(answer)
+
+            # Show the answer
+            st.markdown(answer)
+
+            # Show only the correct images
+            if cars_to_show:
+                show_car_images(cars_to_show)
+
+            # Save to history
             st.session_state.car_messages.append(
-                {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
+                {"role": "assistant", "content": answer, "image_keys": cars_to_show}
             )
