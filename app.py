@@ -57,7 +57,7 @@ st.markdown("""
     text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Chat UI Enhancements */
+/* Chat Message Bubbles */
 .stChatMessage {
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(12px);
@@ -76,29 +76,45 @@ st.markdown("""
     border-left: 4px solid #ff6b35;
 }
 
-.stTextInput>div>div>input {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 1rem;
+/* =========================================
+   NEW: PREMIUM CHAT INPUT BOX STYLING
+   ========================================= */
+/* The main container for the chat input */
+[data-testid="stChatInput"] {
+    background-color: rgba(15, 15, 15, 0.85) !important;
+    backdrop-filter: blur(15px) !important;
+    border: 1px solid rgba(255, 107, 53, 0.3) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+    padding: 2px !important;
+    transition: all 0.3s ease-in-out !important;
 }
 
-.stButton>button {
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 24px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stButton>button:hover {
+/* Glow effect when user clicks/focuses on the input box */
+[data-testid="stChatInput"]:focus-within {
+    border: 1px solid #ff6b35 !important;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 8px 32px rgba(0,0,0,0.6) !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(255, 107, 53, 0.4);
+}
+
+/* The actual text typing area */
+[data-testid="stChatInputTextArea"] {
+    color: #ffffff !important;
+    font-size: 1.05rem !important;
+}
+
+/* Send Button inside the chat input */
+[data-testid="stChatInputSubmitButton"] {
+    background: linear-gradient(135deg, #ff6b35, #f7931e) !important;
+    border-radius: 50% !important;
+    color: white !important;
+    border: none !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+[data-testid="stChatInputSubmitButton"]:hover {
+    transform: scale(1.15) !important;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
 }
 
 /* Car Image Cards */
