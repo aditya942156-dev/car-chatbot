@@ -78,7 +78,87 @@ st.markdown("""
 }
 
 /* =========================================
-   PREMIUM CHAT INPUT BOX STYLING
+   SIDEBAR STYLING - SEARCH ACTIVITY MENU
+   ========================================= */
+[data-testid="sidebarContent"] {
+    background: rgba(20, 20, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border-right: 1px solid rgba(255, 107, 53, 0.3) !important;
+}
+
+.sidebar-menu-header {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.search-history-item {
+    background: rgba(255, 255, 255, 0.08) !important;
+    padding: 12px 15px !important;
+    margin-bottom: 8px !important;
+    border-radius: 12px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.search-history-item:hover {
+    background: rgba(255, 107, 53, 0.2) !important;
+    transform: translateX(5px) !important;
+    border: 1px solid rgba(255, 107, 53, 0.4) !important;
+}
+
+.search-history-item .history-query {
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+.search-history-item .history-date {
+    color: rgba(255, 107, 53, 0.8) !important;
+    font-size: 0.8rem !important;
+    margin-top: 4px !important;
+}
+
+.clear-history-btn {
+    background: linear-gradient(135deg, #ff4757, #ff6b6b) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    margin-top: 20px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+}
+
+.clear-history-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4) !important;
+}
+
+.no-history-message {
+    color: rgba(255, 255, 255, 0.5) !important;
+    font-style: italic !important;
+    text-align: center !important;
+    padding: 20px !important;
+    font-size: 0.9rem !important;
+}
+
+/* =========================================
+   CHAT INPUT BOX STYLING
    ========================================= */
 [data-testid="stChatInput"] {
     background-color: rgba(15, 15, 15, 0.85) !important;
@@ -114,187 +194,6 @@ st.markdown("""
     box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
 }
 
-/* =========================================
-   LEFT SIDEBAR STYLING
-   ========================================= */
-/* Hamburger Menu Button */
-.hamburger-menu {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.9), rgba(247, 147, 30, 0.9));
-    border: none;
-    border-radius: 12px;
-    padding: 12px 16px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-}
-
-.hamburger-menu:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-}
-
-.hamburger-icon {
-    font-size: 24px;
-    color: white;
-    font-weight: bold;
-}
-
-/* Sidebar Container */
-.sidebar-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 320px;
-    height: 100vh;
-    background: rgba(15, 15, 15, 0.95);
-    backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 107, 53, 0.3);
-    z-index: 999;
-    transform: translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
-    padding: 80px 20px 20px 20px;
-    box-shadow: 5px 0 30px rgba(0,0,0,0.5);
-}
-
-.sidebar-container.open {
-    transform: translateX(0);
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
-}
-
-.sidebar-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-}
-
-.close-btn {
-    background: rgba(255, 107, 53, 0.2);
-    border: 1px solid rgba(255, 107, 53, 0.3);
-    color: #ff6b35;
-    border-radius: 8px;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-    background: rgba(255, 107, 53, 0.3);
-    transform: scale(1.05);
-}
-
-/* Search Activity Items */
-.search-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 12px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.search-item:hover {
-    background: rgba(255, 107, 53, 0.1);
-    border-color: rgba(255, 107, 53, 0.4);
-    transform: translateX(5px);
-}
-
-.search-time {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 5px;
-}
-
-.search-query {
-    font-size: 0.95rem;
-    color: #ffffff;
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-.search-cars {
-    font-size: 0.8rem;
-    color: rgba(255, 107, 53, 0.8);
-    margin-top: 8px;
-    font-style: italic;
-}
-
-/* Clear History Button */
-.clear-history {
-    background: rgba(255, 107, 53, 0.2);
-    border: 1px solid rgba(255, 107, 53, 0.4);
-    color: #ffffff;
-    border-radius: 10px;
-    padding: 12px 20px;
-    width: 100%;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: all 0.3s ease;
-}
-
-.clear-history:hover {
-    background: rgba(255, 107, 53, 0.3);
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
-}
-
-/* Overlay Background */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    z-index: 998;
-    display: none;
-}
-
-.overlay.active {
-    display: block;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    color: rgba(255, 255, 255, 0.5);
-    padding: 40px 20px;
-}
-
-.empty-icon {
-    font-size: 3rem;
-    margin-bottom: 15px;
-}
-
-/* Scrollbar Styling */
-.sidebar-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 107, 53, 0.5);
-    border-radius: 3px;
-}
-
 /* Car Image Cards */
 .car-image-card {
     border-radius: 12px;
@@ -315,6 +214,28 @@ st.markdown("""
     background: rgba(0,0,0,0.5);
     margin-top: -4px;
 }
+
+/* Stats Card */
+.stats-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 107, 53, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+    margin-top: 20px !important;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 0.9rem !important;
+}
+
+.stat-value {
+    color: #ff6b35 !important;
+    font-weight: 700 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -331,16 +252,12 @@ if not UNSPLASH_KEY:
     st.warning("⚠️ UNSPLASH_KEY not set - using fallback images")
 
 # ==================================================
-# 3. INIT SESSION STATE
+# 3. INIT SESSION STATE FOR HISTORY
 # ==================================================
-if "car_messages" not in st.session_state:
-    st.session_state.car_messages = []
-
 if "search_history" not in st.session_state:
     st.session_state.search_history = []
-
-if "sidebar_open" not in st.session_state:
-    st.session_state.sidebar_open = False
+if "current_conversation_id" not in st.session_state:
+    st.session_state.current_conversation_id = None
 
 # ==================================================
 # 4. CAR CONTEXT
@@ -425,14 +342,22 @@ FALLBACK_IMAGE_MAP = {
 }
 
 def _extract_car_names_from_prompt(prompt: str):
+    """
+    Extract car names specifically from the user's prompt.
+    This ensures we only show images for cars the user asked about.
+    """
     lowered = prompt.lower()
     found = []
     
+    # Check for exact matches with our known models
     for key in FALLBACK_IMAGE_MAP:
+        # Use word boundaries to avoid partial matches
+        # e.g., "punch" should match "tata punch" but not "punching"
         pattern = r'\b' + re.escape(key) + r'\b'
         if re.search(pattern, lowered) and key not in found:
             found.append(key)
     
+    # If no exact matches, try keyword matching for Indian cars
     if not found:
         indian_car_keywords = {
             "punch": "tata punch",
@@ -454,6 +379,7 @@ def _extract_car_names_from_prompt(prompt: str):
         }
         
         for keyword, full_name in indian_car_keywords.items():
+            # Use word boundaries for keywords too
             pattern = r'\b' + re.escape(keyword) + r'\b'
             if re.search(pattern, lowered) and full_name not in found:
                 found.append(full_name)
@@ -502,68 +428,67 @@ def show_car_images(model_keys):
             </div>
             """, unsafe_allow_html=True)
 
-def format_time(dt):
-    """Format datetime to readable string"""
-    return dt.strftime("%b %d, %I:%M %p")
-
 # ==================================================
-# 7. SIDEBAR HTML/CSS IMPLEMENTATION
+# 7. SIDEBAR - SEARCH ACTIVITY MENU
 # ==================================================
-# Toggle sidebar
-if st.sidebar.button("☰ Menu", key="toggle_sidebar"):
-    st.session_state.sidebar_open = not st.session_state.sidebar_open
-
-# Render sidebar HTML
-sidebar_html = f"""
-<div class="overlay {'active' if st.session_state.sidebar_open else ''}" 
-     onclick="document.querySelector('.sidebar-container').classList.remove('open'); 
-              document.querySelector('.overlay').classList.remove('active');"></div>
-
-<div class="sidebar-container {'open' if st.session_state.sidebar_open else ''}" id="sidebarMenu">
-    <div class="sidebar-header">
-        <div class="sidebar-title">🏎️ Activity History</div>
-        <button class="close-btn" onclick="this.closest('.sidebar-container').classList.remove('open'); 
-                                           this.parentElement.parentElement.parentElement.classList.remove('active');">×</button>
-    </div>
-    
-    <div class="sidebar-content">
-        {generate_search_history_html()}
-    </div>
-</div>
-"""
-
-def generate_search_history_html():
-    if not st.session_state.search_history:
-        return """
-        <div class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <div>No searches yet</div>
-            <div style="font-size: 0.85rem; margin-top: 10px;">Ask about any car to see it here</div>
-        </div>
-        """
-    
-    html = ""
-    for item in reversed(st.session_state.search_history):
-        cars_str = ", ".join(item.get('detected_cars', []))[:50] + ("..." if len(", ".join(item.get('detected_cars', []))) > 50 else "")
-        html += f"""
-        <div class="search-item" title="{item['query']}">
-            <div class="search-time">🕐 {format_time(item['timestamp'])}</div>
-            <div class="search-query">{item['query']}</div>
-            {f"<div class='search-cars'>🚗 Found: {cars_str}</div>" if item.get('detected_cars') else ""}
-        </div>
-        """
-    
-    html += """
-    <button class="clear-history" onclick="if(confirm('Clear all search history?')) window.location.reload();">
-        🗑️ Clear All History
-    </button>
-    """
-    return html
-
-# Inject sidebar into the page
 with st.sidebar:
-    st.write("")  # Spacer to hide default sidebar
-st.markdown(sidebar_html, unsafe_allow_html=True)
+    st.markdown("""
+    <div class="sidebar-menu-header">
+        <span>🔍</span> Search Activity
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if st.session_state.search_history:
+        for idx, history_item in enumerate(reversed(st.session_state.search_history[-10:])):
+            history_id = history_item["id"]
+            query = history_item["query"][:50] + "..." if len(history_item["query"]) > 50 else history_item["query"]
+            date = history_item["date"]
+            
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.markdown(
+                    f"""
+                    <div class="search-history-item" onclick="location.reload()">
+                        <div class="history-query">{query}</div>
+                        <div class="history-date">{date}</div>
+                    </div>
+                    """, 
+                    unsafe_allow_html=True
+                )
+            
+            # Add a small delete button for each history item
+            if st.session_state.search_history[::-1].index(history_item) == idx and col2:
+                if st.button("🗑️", key=f"delete_{idx}", help="Delete this search"):
+                    st.session_state.search_history.remove(history_item)
+                    st.rerun()
+    else:
+        st.markdown('<div class="no-history-message">No recent searches yet</div>', unsafe_allow_html=True)
+    
+    # Stats card
+    total_searches = len(st.session_state.search_history)
+    unique_cars = len(set().union(*[[item for item in h.get("cars", [])] for h in st.session_state.search_history])) if st.session_state.search_history else 0
+    
+    if total_searches > 0:
+        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="stats-card">
+            <div class="stat-item">
+                <span>Total Searches</span>
+                <span class="stat-value">{total_searches}</span>
+            </div>
+            <div class="stat-item">
+                <span>Cars Explored</span>
+                <span class="stat-value">{unique_cars}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Clear History Button
+    if total_searches > 0:
+        if st.button("🗑️ Clear All History", key="clear_all_history", type="primary"):
+            st.session_state.search_history = []
+            st.session_state.car_messages = []
+            st.rerun()
 
 # ==================================================
 # 8. MAIN UI
@@ -575,10 +500,14 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+if "car_messages" not in st.session_state:
+    st.session_state.car_messages = []
+
 # Render chat history
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+        # Only show images for cars that were in the USER'S original prompt
         if msg.get("role") == "assistant" and msg.get("user_car_keys"):
             show_car_images(msg["user_car_keys"])
 
@@ -587,12 +516,17 @@ if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommend
     # Extract car names from the USER'S prompt
     user_car_keys = _extract_car_names_from_prompt(prompt)
     
+    # Generate timestamp
+    current_time = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    
     # Save to search history
-    st.session_state.search_history.append({
+    history_entry = {
+        "id": datetime.now().timestamp(),
         "query": prompt,
-        "timestamp": datetime.now(),
-        "detected_cars": user_car_keys
-    })
+        "date": current_time,
+        "cars": user_car_keys
+    }
+    st.session_state.search_history.append(history_entry)
     
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -604,44 +538,16 @@ if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommend
             answer = groq_car_chat(prompt, context)
             st.markdown(answer)
             
+            # Show images ONLY for cars the user asked about
             if user_car_keys:
                 show_car_images(user_car_keys)
             else:
                 st.caption("_No specific car models detected in your question_")
             
+            # Store the assistant response along with the user's car keys
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
             )
-
-# Add JavaScript to handle sidebar toggle properly
-st.markdown("""
-<script>
-// Handle hamburger menu click
-const toggleBtn = document.querySelector('[data-testid="stSidebarButton"]');
-if (toggleBtn) {
-    toggleBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        const sidebar = document.getElementById('sidebarMenu');
-        const overlay = document.querySelector('.overlay');
-        if (sidebar) {
-            sidebar.classList.toggle('open');
-        }
-        if (overlay) {
-            overlay.classList.toggle('active');
-        }
-    });
-}
-
-// Close sidebar when clicking outside
-document.addEventListener('click', function(e) {
-    const sidebar = document.getElementById('sidebarMenu');
-    const overlay = document.querySelector('.overlay');
-    const toggleBtn = document.querySelector('[data-testid="stSidebarButton"]');
     
-    if (sidebar && overlay && !sidebar.contains(e.target) && !toggleBtn.contains(e.target) && overlay.style.display !== 'none') {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-    }
-});
-</script>
-""", unsafe_allow_html=True)
+    # Rerun to update sidebar
+    st.rerun()
