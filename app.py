@@ -1,28 +1,13 @@
 import streamlit as st
 import requests
 import re
-from datetime import datetime
+from urllib.parse import quote
 
 # ==================================================
-# 1. PAGE CONFIG
+# 1. PAGE CONFIG & PREMIUM UI STYLING
 # ==================================================
 st.set_page_config(page_title="EliteDrive AI", page_icon="🏎️", layout="wide")
 
-# Hide default streamlit hamburger completely
-st.markdown("""
-<style>
-[data-testid="stSidebar"] {
-    display: none;
-}
-[data-testid="stSidebarCollapseButton"] {
-    display: none;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ==================================================
-# 2. FULL UI STYLING
-# ==================================================
 st.markdown("""
 <style>
 /* Premium Background */
@@ -36,29 +21,7 @@ st.markdown("""
     min-height: 100vh;
 }
 
-/* Permanent Hamburger Menu Button */
-.hamburger-btn {
-    position: fixed;
-    top: 18px;
-    left: 18px;
-    z-index: 9999;
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    transition: all 0.3s ease;
-}
-
-.hamburger-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-}
-
-/* EliteDrive Title */
+/* EliteDrive Title - Premium Car Theme */
 .title-container {
     text-align: center;
     margin-bottom: 1rem;
@@ -74,6 +37,7 @@ st.markdown("""
     font-family: 'Arial Black', sans-serif;
     font-size: 3.5rem !important;
     font-weight: 900 !important;
+    color: #ffffff;
     text-shadow: 0 0 10px rgba(255, 107, 53, 0.7),
                  0 0 20px rgba(255, 107, 53, 0.5);
     letter-spacing: 2px;
@@ -112,7 +76,10 @@ st.markdown("""
     border-left: 4px solid #ff6b35;
 }
 
-/* Chat Input Box */
+/* =========================================
+   NEW: PREMIUM CHAT INPUT BOX STYLING
+   ========================================= */
+/* The main container for the chat input */
 [data-testid="stChatInput"] {
     background-color: rgba(15, 15, 15, 0.85) !important;
     backdrop-filter: blur(15px) !important;
@@ -123,17 +90,20 @@ st.markdown("""
     transition: all 0.3s ease-in-out !important;
 }
 
+/* Glow effect when user clicks/focuses on the input box */
 [data-testid="stChatInput"]:focus-within {
     border: 1px solid #ff6b35 !important;
     box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 8px 32px rgba(0,0,0,0.6) !important;
     transform: translateY(-2px);
 }
 
+/* The actual text typing area */
 [data-testid="stChatInputTextArea"] {
     color: #ffffff !important;
     font-size: 1.05rem !important;
 }
 
+/* Send Button inside the chat input */
 [data-testid="stChatInputSubmitButton"] {
     background: linear-gradient(135deg, #ff6b35, #f7931e) !important;
     border-radius: 50% !important;
@@ -145,132 +115,6 @@ st.markdown("""
 [data-testid="stChatInputSubmitButton"]:hover {
     transform: scale(1.15) !important;
     box-shadow: 0 0 15px rgba(255, 107, 53, 0.6) !important;
-}
-
-/* =========================================
-   SLIDE OUT SIDEBAR MENU
-   ========================================= */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 320px;
-    height: 100vh;
-    background: rgba(12, 12, 12, 0.96);
-    backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 107, 53, 0.3);
-    z-index: 9998;
-    transform: translateX(-100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
-    padding: 70px 20px 30px 20px;
-    box-shadow: 8px 0 40px rgba(0,0,0,0.6);
-}
-
-.sidebar.open {
-    transform: translateX(0);
-}
-
-.sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
-}
-
-.sidebar-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: white;
-}
-
-.close-btn {
-    background: rgba(255, 107, 53, 0.2);
-    border: 1px solid rgba(255, 107, 53, 0.4);
-    color: #ff6b35;
-    border-radius: 8px;
-    padding: 4px 10px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 16px;
-}
-
-/* Search History Items */
-.history-item {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 14px;
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
-}
-
-.history-item:hover {
-    background: rgba(255, 107, 53, 0.1);
-    border-color: rgba(255, 107, 53, 0.4);
-    transform: translateX(5px);
-}
-
-.history-time {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 6px;
-}
-
-.history-query {
-    font-size: 0.9rem;
-    color: white;
-    line-height: 1.3;
-}
-
-.history-cars {
-    font-size: 0.8rem;
-    color: #ff6b35;
-    margin-top: 6px;
-}
-
-.clear-history-btn {
-    background: rgba(255, 107, 53, 0.2);
-    border: 1px solid rgba(255, 107, 53, 0.4);
-    color: white;
-    border-radius: 10px;
-    padding: 12px;
-    width: 100%;
-    font-weight: 600;
-    margin-top: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.clear-history-btn:hover {
-    background: rgba(255, 107, 53, 0.3);
-}
-
-.empty-history {
-    text-align: center;
-    color: rgba(255,255,255,0.5);
-    padding: 50px 10px;
-}
-
-/* Dark overlay when sidebar is open */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.7);
-    z-index: 9997;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-}
-
-.overlay.open {
-    opacity: 1;
-    pointer-events: all;
 }
 
 /* Car Image Cards */
@@ -293,44 +137,11 @@ st.markdown("""
     background: rgba(0,0,0,0.5);
     margin-top: -4px;
 }
-
-/* Scrollbar */
-.sidebar::-webkit-scrollbar {
-    width: 5px;
-}
-.sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 107, 53, 0.5);
-    border-radius: 3px;
-}
-
 </style>
-
-<!-- Hamburger Button -->
-<button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
-
-<!-- Overlay -->
-<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
-
-<!-- Sidebar Menu -->
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <div class="sidebar-title">📋 Search History</div>
-        <button class="close-btn" onclick="toggleSidebar()">✕</button>
-    </div>
-    <div id="history-content">
-    </div>
-</div>
-
-<script>
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('open');
-}
-</script>
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 3. INIT SESSION STATE
+# 2. SECRETS
 # ==================================================
 GROQ_KEY = st.secrets.get("GROQ_KEY", None)
 UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
@@ -338,26 +149,26 @@ UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
-
-if "car_messages" not in st.session_state:
-    st.session_state.car_messages = []
-if "search_history" not in st.session_state:
-    st.session_state.search_history = []
+if not UNSPLASH_KEY:
+    st.warning("⚠️ UNSPLASH_KEY not set - using fallback images")
 
 # ==================================================
-# 4. CAR CONTEXT
+# 3. CAR CONTEXT
 # ==================================================
 def get_car_context():
     return """
     Current Trending Cars (2024-2025):
-    - Indian Market: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Swift
-    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal
-    - SUVs: Toyota RAV4 Hybrid, Honda CR-V, Kia Sportage
-    Market Trends: Hybrids are fastest growing segment in India.
+    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal, Lucid Air
+    - Performance: Porsche Taycan, BMW M5, Audi RS e-tron GT
+    - Luxury: Mercedes-Maybach EQS, Rolls-Royce Spectre, Bentley Bentayga
+    - SUVs: Range Rover Sport, Lexus RX, Volvo EX90
+    - Budget: Toyota Corolla Hybrid, Honda Civic, Hyundai Kona Electric
+    - Indian Market: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift
+    Market Trends: 40% EV adoption in premium segments, 25% price premium for performance EVs
     """
 
 # ==================================================
-# 5. GROQ API CALL
+# 4. GROQ API CALL
 # ==================================================
 def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -369,7 +180,9 @@ def groq_car_chat(prompt: str, context: str) -> str:
         "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "system", "content":
-                "You are EliteDrive AI - a professional car consultant. Give honest pros and cons, real world mileage and ownership advice."},
+                "You are EliteDrive AI - a premium car consultant with expertise in luxury, performance, and electric vehicles. "
+                "Provide detailed comparisons, technical specifications, and market insights with a sophisticated tone. "
+                "Always include pros/cons, real-world range estimates for EVs, and ownership cost analysis."},
             {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
         ],
         "temperature": 0.7,
@@ -381,45 +194,118 @@ def groq_car_chat(prompt: str, context: str) -> str:
     return f"Error: {resp.text}"
 
 # ==================================================
-# 6. IMAGE AND CAR DETECTION
+# 5. IMAGE HANDLING - ENHANCED WITH INDIAN CARS
 # ==================================================
 FALLBACK_IMAGE_MAP = {
+    # International models
+    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
+    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
+    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
+    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
+    "honda cr-v": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
+    "kia sportage": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
+    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
+    "mercedes eqs": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
+    "audi e-tron gt": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
+    "porsche taycan": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2021_Porsche_Taycan_4S.jpg/800px-2021_Porsche_Taycan_4S.jpg",
+    "lucid air": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Lucid_Air_Dream_Edition.jpg/800px-Lucid_Air_Dream_Edition.jpg",
+    "rolls-royce spectre": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Rolls-Royce_Spectre_2023.jpg/800px-Rolls-Royce_Spectre_2023.jpg",
+    "range rover sport": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2022_Range_Rover_Sport_Autobiography.jpg/800px-2022_Range_Rover_Sport_Autobiography.jpg",
+    "lexus rx": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/2023_Lexus_RX_350h_F_Sport.jpg/800px-2023_Lexus_RX_350h_F_Sport.jpg",
+    "volvo ex90": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Volvo_EX90_2024.jpg/800px-Volvo_EX90_2024.jpg",
+    
+    # Indian car models
     "tata punch": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Tata_Punch.jpg/800px-Tata_Punch.jpg",
     "tata nexon": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Tata_Nexon_EV.jpg/800px-Tata_Nexon_EV.jpg",
+    "tata harrier": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Tata_Harrier.jpg/800px-Tata_Harrier.jpg",
+    "tata safari": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Tata_Safari.jpg/800px-Tata_Safari.jpg",
     "mahindra thar": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Mahindra_Thar.jpg/800px-Mahindra_Thar.jpg",
+    "mahindra scorpio": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Mahindra_Scorpio.jpg/800px-Mahindra_Scorpio.jpg",
     "mahindra xuv700": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahindra_XUV700.jpg/800px-Mahindra_XUV700.jpg",
     "hyundai creta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Hyundai_Creta.jpg/800px-Hyundai_Creta.jpg",
     "kia seltos": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Kia_Seltos.jpg/800px-Kia_Seltos.jpg",
-    "maruti swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maruti_Suzuki_Swift.jpg/800px-Maruti_Suzuki_Swift.jpg",
+    "maruti suzuki swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maruti_Suzuki_Swift.jpg/800px-Maruti_Suzuki_Swift.jpg",
+    "maruti suzuki baleno": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Maruti_Suzuki_Baleno.jpg/800px-Maruti_Suzuki_Baleno.jpg",
+    "maruti suzuki grand vitara": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Maruti_Suzuki_Grand_Vitara.jpg/800px-Maruti_Suzuki_Grand_Vitara.jpg",
+    "toyota innova crysta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Toyota_Innova_Crysta.jpg/800px-Toyota_Innova_Crysta.jpg",
+    "honda city": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Honda_City.jpg/800px-Honda_City.jpg",
+    "hyundai verna": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Hyundai_Verna.jpg/800px-Hyundai_Verna.jpg",
+    "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hyundai_i20.jpg/800px-Hyundai_i20.jpg",
 }
 
 def _extract_car_names_from_prompt(prompt: str):
+    """
+    Extract car names specifically from the user's prompt.
+    This ensures we only show images for cars the user asked about.
+    """
     lowered = prompt.lower()
     found = []
+    
+    # Check for exact matches with our known models
     for key in FALLBACK_IMAGE_MAP:
+        # Use word boundaries to avoid partial matches
+        # e.g., "punch" should match "tata punch" but not "punching"
         pattern = r'\b' + re.escape(key) + r'\b'
         if re.search(pattern, lowered) and key not in found:
             found.append(key)
-
-    indian_car_keywords = {
-        "punch": "tata punch",
-        "thar": "mahindra thar",
-        "nexon": "tata nexon",
-        "creta": "hyundai creta",
-        "seltos": "kia seltos",
-        "swift": "maruti swift",
-    }
-
-    for keyword, full_name in indian_car_keywords.items():
-        pattern = r'\b' + re.escape(keyword) + r'\b'
-        if re.search(pattern, lowered) and full_name not in found:
-            found.append(full_name)
-
+    
+    # If no exact matches, try keyword matching for Indian cars
+    if not found:
+        indian_car_keywords = {
+            "punch": "tata punch",
+            "nexon": "tata nexon",
+            "harrier": "tata harrier",
+            "safari": "tata safari",
+            "thar": "mahindra thar",
+            "scorpio": "mahindra scorpio",
+            "xuv700": "mahindra xuv700",
+            "creta": "hyundai creta",
+            "seltos": "kia seltos",
+            "swift": "maruti suzuki swift",
+            "baleno": "maruti suzuki baleno",
+            "grand vitara": "maruti suzuki grand vitara",
+            "innova crysta": "toyota innova crysta",
+            "city": "honda city",
+            "verna": "hyundai verna",
+            "i20": "hyundai i20",
+        }
+        
+        for keyword, full_name in indian_car_keywords.items():
+            # Use word boundaries for keywords too
+            pattern = r'\b' + re.escape(keyword) + r'\b'
+            if re.search(pattern, lowered) and full_name not in found:
+                found.append(full_name)
+    
     return found
 
+def get_unsplash_image_url(query: str) -> str | None:
+    if not UNSPLASH_KEY:
+        return None
+    url = "https://api.unsplash.com/search/photos"
+    params = {
+        "query": f"{query} car",
+        "per_page": 1,
+        "client_id": UNSPLASH_KEY,
+    }
+    try:
+        r = requests.get(url, params=params, timeout=8)
+        if r.status_code != 200:
+            return None
+        data = r.json()
+        results = data.get("results", [])
+        if results:
+            return results[0]["urls"]["regular"]
+    except Exception:
+        pass
+    return None
+
 def get_image_url_for_model(model_key: str) -> str:
+    unsplash_url = get_unsplash_image_url(model_key)
+    if unsplash_url:
+        return unsplash_url
     return FALLBACK_IMAGE_MAP.get(model_key,
-                                 "https://via.placeholder.com/400x225?text=Car+Image")
+                                 "https://via.placeholder.com/400x225?text=Premium+Car+Image")
 
 def show_car_images(model_keys):
     if not model_keys:
@@ -436,46 +322,7 @@ def show_car_images(model_keys):
             """, unsafe_allow_html=True)
 
 # ==================================================
-# 7. RENDER SEARCH HISTORY INTO SIDEBAR
-# ==================================================
-def render_history():
-    if not st.session_state.search_history:
-        return """
-        <div class="empty-history">
-            <div style="font-size: 40px; margin-bottom: 10px;">🔍</div>
-            No searches yet<br>
-            <small>Ask about any car and it will appear here</small>
-        </div>
-        """
-
-    html = ""
-    for item in reversed(st.session_state.search_history):
-        time_str = item['time'].strftime("%b %d, %I:%M %p")
-        cars = ", ".join(item['cars'])
-        html += f"""
-        <div class="history-item">
-            <div class="history-time">🕐 {time_str}</div>
-            <div class="history-query">{item['query']}</div>
-            {f'<div class="history-cars">🚗 {cars}</div>' if cars else ''}
-        </div>
-        """
-
-    html += """
-    <button class="clear-history-btn" onclick="if(confirm('Clear all history?')) window.location.reload()">
-        🗑️ Clear All History
-    </button>
-    """
-    return html
-
-# Inject the history into the sidebar
-st.markdown(f"""
-<script>
-document.getElementById('history-content').innerHTML = `{render_history()}`;
-</script>
-""", unsafe_allow_html=True)
-
-# ==================================================
-# 8. MAIN CHAT UI
+# 6. MAIN UI
 # ==================================================
 st.markdown("""
 <div class="title-container">
@@ -484,39 +331,39 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+if "car_messages" not in st.session_state:
+    st.session_state.car_messages = []
+
 # Render chat history
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg.get("user_car_keys"):
+        # Only show images for cars that were in the USER'S original prompt
+        if msg.get("role") == "assistant" and msg.get("user_car_keys"):
             show_car_images(msg["user_car_keys"])
 
 # User input
-if prompt := st.chat_input("Ask about any car - specs, comparisons, recommendations..."):
+if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommendations..."):
+    # Extract car names from the USER'S prompt
     user_car_keys = _extract_car_names_from_prompt(prompt)
-
-    # Save to search history
-    st.session_state.search_history.append({
-        "query": prompt,
-        "time": datetime.now(),
-        "cars": user_car_keys
-    })
-
+    
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing car specs…"):
+        with st.spinner("Analyzing premium vehicle data..."):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
             st.markdown(answer)
-
+            
+            # Show images ONLY for cars the user asked about
             if user_car_keys:
                 show_car_images(user_car_keys)
-
+            else:
+                st.caption("_No specific car models detected in your question_")
+            
+            # Store the assistant response along with the user's car keys
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
             )
-
-    st.rerun()
