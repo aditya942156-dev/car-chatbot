@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import re
 from urllib.parse import quote
-from datetime import datetime
 
 # ==================================================
 # 1. PAGE CONFIG & PREMIUM UI STYLING
@@ -78,88 +77,9 @@ st.markdown("""
 }
 
 /* =========================================
-   SIDEBAR STYLING - SEARCH ACTIVITY MENU
+   NEW: PREMIUM CHAT INPUT BOX STYLING
    ========================================= */
-[data-testid="sidebarContent"] {
-    background: rgba(20, 20, 20, 0.95) !important;
-    backdrop-filter: blur(20px) !important;
-    border-right: 1px solid rgba(255, 107, 53, 0.3) !important;
-}
-
-.sidebar-menu-header {
-    color: #ffffff;
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 107, 53, 0.3);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.search-history-item {
-    background: rgba(255, 255, 255, 0.08) !important;
-    padding: 12px 15px !important;
-    margin-bottom: 8px !important;
-    border-radius: 12px !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
-.search-history-item:hover {
-    background: rgba(255, 107, 53, 0.2) !important;
-    transform: translateX(5px) !important;
-    border: 1px solid rgba(255, 107, 53, 0.4) !important;
-}
-
-.search-history-item .history-query {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-
-.search-history-item .history-date {
-    color: rgba(255, 107, 53, 0.8) !important;
-    font-size: 0.8rem !important;
-    margin-top: 4px !important;
-}
-
-.clear-history-btn {
-    background: linear-gradient(135deg, #ff4757, #ff6b6b) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 12px !important;
-    font-weight: 600 !important;
-    font-size: 0.9rem !important;
-    margin-top: 20px !important;
-    width: 100% !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-}
-
-.clear-history-btn:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4) !important;
-}
-
-.no-history-message {
-    color: rgba(255, 255, 255, 0.5) !important;
-    font-style: italic !important;
-    text-align: center !important;
-    padding: 20px !important;
-    font-size: 0.9rem !important;
-}
-
-/* =========================================
-   CHAT INPUT BOX STYLING
-   ========================================= */
+/* The main container for the chat input */
 [data-testid="stChatInput"] {
     background-color: rgba(15, 15, 15, 0.85) !important;
     backdrop-filter: blur(15px) !important;
@@ -170,17 +90,20 @@ st.markdown("""
     transition: all 0.3s ease-in-out !important;
 }
 
+/* Glow effect when user clicks/focuses on the input box */
 [data-testid="stChatInput"]:focus-within {
     border: 1px solid #ff6b35 !important;
     box-shadow: 0 0 20px rgba(255, 107, 53, 0.4), 0 8px 32px rgba(0,0,0,0.6) !important;
     transform: translateY(-2px);
 }
 
+/* The actual text typing area */
 [data-testid="stChatInputTextArea"] {
     color: #ffffff !important;
     font-size: 1.05rem !important;
 }
 
+/* Send Button inside the chat input */
 [data-testid="stChatInputSubmitButton"] {
     background: linear-gradient(135deg, #ff6b35, #f7931e) !important;
     border-radius: 50% !important;
@@ -214,28 +137,6 @@ st.markdown("""
     background: rgba(0,0,0,0.5);
     margin-top: -4px;
 }
-
-/* Stats Card */
-.stats-card {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 107, 53, 0.2) !important;
-    border-radius: 12px !important;
-    padding: 15px !important;
-    margin-top: 20px !important;
-}
-
-.stat-item {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    font-size: 0.9rem !important;
-}
-
-.stat-value {
-    color: #ff6b35 !important;
-    font-weight: 700 !important;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -252,15 +153,7 @@ if not UNSPLASH_KEY:
     st.warning("⚠️ UNSPLASH_KEY not set - using fallback images")
 
 # ==================================================
-# 3. INIT SESSION STATE FOR HISTORY
-# ==================================================
-if "search_history" not in st.session_state:
-    st.session_state.search_history = []
-if "current_conversation_id" not in st.session_state:
-    st.session_state.current_conversation_id = None
-
-# ==================================================
-# 4. CAR CONTEXT
+# 3. CAR CONTEXT
 # ==================================================
 def get_car_context():
     return """
@@ -275,7 +168,7 @@ def get_car_context():
     """
 
 # ==================================================
-# 5. GROQ API CALL
+# 4. GROQ API CALL
 # ==================================================
 def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -301,7 +194,7 @@ def groq_car_chat(prompt: str, context: str) -> str:
     return f"Error: {resp.text}"
 
 # ==================================================
-# 6. IMAGE HANDLING - ENHANCED WITH INDIAN CARS
+# 5. IMAGE HANDLING - ENHANCED WITH INDIAN CARS
 # ==================================================
 FALLBACK_IMAGE_MAP = {
     # International models
@@ -429,69 +322,7 @@ def show_car_images(model_keys):
             """, unsafe_allow_html=True)
 
 # ==================================================
-# 7. SIDEBAR - SEARCH ACTIVITY MENU
-# ==================================================
-with st.sidebar:
-    st.markdown("""
-    <div class="sidebar-menu-header">
-        <span>🔍</span> Search Activity
-    </div>
-    """, unsafe_allow_html=True)
-    
-    if st.session_state.search_history:
-        for idx, history_item in enumerate(reversed(st.session_state.search_history[-10:])):
-            history_id = history_item["id"]
-            query = history_item["query"][:50] + "..." if len(history_item["query"]) > 50 else history_item["query"]
-            date = history_item["date"]
-            
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                st.markdown(
-                    f"""
-                    <div class="search-history-item" onclick="location.reload()">
-                        <div class="history-query">{query}</div>
-                        <div class="history-date">{date}</div>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
-            
-            # Add a small delete button for each history item
-            if st.session_state.search_history[::-1].index(history_item) == idx and col2:
-                if st.button("🗑️", key=f"delete_{idx}", help="Delete this search"):
-                    st.session_state.search_history.remove(history_item)
-                    st.rerun()
-    else:
-        st.markdown('<div class="no-history-message">No recent searches yet</div>', unsafe_allow_html=True)
-    
-    # Stats card
-    total_searches = len(st.session_state.search_history)
-    unique_cars = len(set().union(*[[item for item in h.get("cars", [])] for h in st.session_state.search_history])) if st.session_state.search_history else 0
-    
-    if total_searches > 0:
-        st.markdown("<div style='height: 20px'></div>", unsafe_allow_html=True)
-        st.markdown(f"""
-        <div class="stats-card">
-            <div class="stat-item">
-                <span>Total Searches</span>
-                <span class="stat-value">{total_searches}</span>
-            </div>
-            <div class="stat-item">
-                <span>Cars Explored</span>
-                <span class="stat-value">{unique_cars}</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Clear History Button
-    if total_searches > 0:
-        if st.button("🗑️ Clear All History", key="clear_all_history", type="primary"):
-            st.session_state.search_history = []
-            st.session_state.car_messages = []
-            st.rerun()
-
-# ==================================================
-# 8. MAIN UI
+# 6. MAIN UI
 # ==================================================
 st.markdown("""
 <div class="title-container">
@@ -516,18 +347,6 @@ if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommend
     # Extract car names from the USER'S prompt
     user_car_keys = _extract_car_names_from_prompt(prompt)
     
-    # Generate timestamp
-    current_time = datetime.now().strftime("%B %d, %Y at %I:%M %p")
-    
-    # Save to search history
-    history_entry = {
-        "id": datetime.now().timestamp(),
-        "query": prompt,
-        "date": current_time,
-        "cars": user_car_keys
-    }
-    st.session_state.search_history.append(history_entry)
-    
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -548,6 +367,3 @@ if prompt := st.chat_input("Ask about any car - specs, comparisons, or recommend
             st.session_state.car_messages.append(
                 {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
             )
-    
-    # Rerun to update sidebar
-    st.rerun()
