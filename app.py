@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 import re
+import io
+import base64
 
 # ==================================================
 # PAGE CONFIG
@@ -11,7 +13,7 @@ BG_IMAGE_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQw
 
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
 
 .stApp {{
     background: linear-gradient(135deg,rgba(0,0,0,0.82) 0%,rgba(5,5,5,0.70) 40%,rgba(0,0,0,0.88) 100%),
@@ -19,184 +21,97 @@ st.markdown(f"""
     background-size: cover;
     background-position: center 30%;
     background-attachment: fixed;
-    background-repeat: no-repeat;
     min-height: 100vh;
     font-family: 'Rajdhani', sans-serif;
 }}
-
 .stApp::before {{
     content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    position: fixed; top:0; left:0; right:0; bottom:0;
     background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
-    pointer-events: none;
-    z-index: 0;
+    pointer-events: none; z-index: 0;
 }}
-
 .title-container {{ text-align: center; padding: 2.5rem 0 1.5rem 0; }}
-
 .elite-title {{
     font-family: 'Orbitron', monospace !important;
-    font-size: 4rem !important;
-    font-weight: 900 !important;
-    letter-spacing: 8px;
+    font-size: 4rem !important; font-weight: 900 !important; letter-spacing: 8px;
     background: linear-gradient(90deg, #ff4500, #ff8c00, #ff4500);
     background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     animation: shine 3s linear infinite, slideDown 0.8s ease-out;
-    text-transform: uppercase;
-    margin-bottom: 0.2rem;
+    text-transform: uppercase; margin-bottom: 0.2rem;
 }}
-
 @keyframes shine {{ to {{ background-position: 200% center; }} }}
-@keyframes slideDown {{ from {{ opacity: 0; transform: translateY(-30px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-
+@keyframes slideDown {{ from {{ opacity:0; transform:translateY(-30px); }} to {{ opacity:1; transform:translateY(0); }} }}
 .tagline {{
-    font-family: 'Rajdhani', sans-serif;
-    color: rgba(255, 200, 100, 0.85);
-    font-size: 1.1rem;
-    font-weight: 500;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    margin-top: 0;
-    animation: slideDown 1s ease-out 0.2s both;
+    font-family: 'Rajdhani', sans-serif; color: rgba(255,200,100,0.85);
+    font-size: 1.1rem; font-weight: 500; letter-spacing: 6px; text-transform: uppercase; margin-top: 0;
 }}
-
 .title-line {{
     width: 120px; height: 2px;
     background: linear-gradient(90deg, transparent, #ff6b00, transparent);
     margin: 1rem auto 0;
-    animation: expandLine 1.5s ease-out 0.5s both;
 }}
-
-@keyframes expandLine {{ from {{ width: 0; opacity: 0; }} to {{ width: 120px; opacity: 1; }} }}
-
 .stChatMessage {{
-    background: rgba(8, 8, 8, 0.75) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(255, 107, 53, 0.15) !important;
-    margin-bottom: 1rem !important;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    background: rgba(8,8,8,0.75) !important; backdrop-filter: blur(20px) saturate(180%) !important;
+    border-radius: 4px !important; border: 1px solid rgba(255,107,53,0.15) !important;
+    margin-bottom: 1rem !important; transition: all 0.3s ease !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
 }}
-
 .stChatMessage:hover {{
-    transform: translateX(4px) !important;
-    border-color: rgba(255, 107, 53, 0.4) !important;
-    box-shadow: 0 8px 30px rgba(255, 107, 53, 0.15), 0 4px 20px rgba(0,0,0,0.5) !important;
+    transform: translateX(4px) !important; border-color: rgba(255,107,53,0.4) !important;
 }}
-
 [data-testid="stChatInput"] {{
-    background: rgba(5, 5, 5, 0.9) !important;
-    backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 107, 53, 0.35) !important;
-    border-radius: 4px !important;
-    box-shadow: 0 0 0 1px rgba(255,107,53,0.1), 0 20px 60px rgba(0,0,0,0.6) !important;
+    background: rgba(5,5,5,0.9) !important; backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255,107,53,0.35) !important; border-radius: 4px !important;
     transition: all 0.3s ease !important;
 }}
-
 [data-testid="stChatInput"]:focus-within {{
     border-color: #ff6b00 !important;
-    box-shadow: 0 0 0 1px rgba(255,107,0,0.3), 0 0 30px rgba(255,107,0,0.2), 0 20px 60px rgba(0,0,0,0.7) !important;
+    box-shadow: 0 0 30px rgba(255,107,0,0.2) !important;
 }}
-
 [data-testid="stChatInputTextArea"] {{
-    color: #ffffff !important;
-    font-family: 'Rajdhani', sans-serif !important;
-    font-size: 1.05rem !important;
-    font-weight: 500 !important;
+    color: #ffffff !important; font-family: 'Rajdhani', sans-serif !important;
+    font-size: 1.05rem !important; font-weight: 500 !important;
 }}
-
-[data-testid="stChatInputTextArea"]::placeholder {{
-    color: rgba(255, 140, 50, 0.45) !important;
-    font-style: italic;
-}}
-
+[data-testid="stChatInputTextArea"]::placeholder {{ color: rgba(255,140,50,0.45) !important; font-style: italic; }}
 [data-testid="stChatInputSubmitButton"] {{
     background: linear-gradient(135deg, #ff4500, #ff8c00) !important;
-    border-radius: 3px !important;
-    border: none !important;
-    transition: all 0.2s ease !important;
+    border-radius: 3px !important; border: none !important; transition: all 0.2s ease !important;
 }}
-
-[data-testid="stChatInputSubmitButton"]:hover {{
-    transform: scale(1.1) !important;
-    box-shadow: 0 0 20px rgba(255, 107, 0, 0.6) !important;
-}}
-
-.stMarkdown, .stText, p {{
-    color: rgba(255, 255, 255, 0.92) !important;
-    font-family: 'Rajdhani', sans-serif !important;
-    font-size: 1.05rem;
-    line-height: 1.7;
-}}
-
+[data-testid="stChatInputSubmitButton"]:hover {{ transform: scale(1.1) !important; }}
+.stMarkdown, .stText, p {{ color: rgba(255,255,255,0.92) !important; font-family: 'Rajdhani', sans-serif !important; font-size: 1.05rem; line-height: 1.7; }}
 ::-webkit-scrollbar {{ width: 4px; }}
 ::-webkit-scrollbar-track {{ background: rgba(0,0,0,0.3); }}
 ::-webkit-scrollbar-thumb {{ background: linear-gradient(#ff4500, #ff8c00); border-radius: 2px; }}
-
-.car-image-card {{
-    border-radius: 4px;
-    overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s ease;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,107,53,0.2);
-    position: relative;
-    margin-bottom: 12px;
+.car-gallery-label {{
+    font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 3px;
+    color: rgba(255,140,50,0.8); text-transform: uppercase; margin: 14px 0 8px 2px;
+    border-left: 2px solid #ff6b00; padding-left: 8px;
 }}
-
-.car-image-card::after {{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.7) 100%);
-    pointer-events: none;
+/* Override Streamlit image default styles for cards */
+.car-img-wrapper {{
+    border-radius: 4px; overflow: hidden;
+    border: 1px solid rgba(255,107,53,0.25);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.55);
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+    margin-bottom: 6px;
 }}
-
-.car-image-card:hover {{
+.car-img-wrapper:hover {{
     transform: scale(1.04) translateY(-4px);
-    box-shadow: 0 20px 50px rgba(255,107,53,0.25), 0 8px 30px rgba(0,0,0,0.6);
-    border-color: rgba(255,107,53,0.5);
+    box-shadow: 0 20px 50px rgba(255,107,53,0.25);
+    border-color: rgba(255,107,53,0.55);
 }}
-
-.car-image-caption {{
-    color: rgba(255, 200, 100, 0.95);
-    font-family: 'Orbitron', monospace;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-align: center;
-    padding: 10px 8px;
-    background: rgba(0,0,0,0.85);
-    letter-spacing: 2px;
-    text-transform: uppercase;
+.car-img-caption {{
+    font-family: 'Orbitron', monospace; font-size: 0.62rem; font-weight: 700;
+    text-align: center; padding: 8px 6px; letter-spacing: 2px; text-transform: uppercase;
+    color: rgba(255,200,100,0.95); background: rgba(0,0,0,0.88);
 }}
-
 .status-badge {{
     display: inline-block;
     background: linear-gradient(90deg, rgba(255,69,0,0.15), rgba(255,140,0,0.15));
-    border: 1px solid rgba(255,107,53,0.4);
-    border-radius: 2px;
-    padding: 4px 14px;
-    font-family: 'Orbitron', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 3px;
-    color: rgba(255,180,80,0.9);
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-}}
-
-.img-section-label {{
-    font-family: 'Orbitron', monospace;
-    font-size: 0.6rem;
-    letter-spacing: 3px;
-    color: rgba(255,140,50,0.7);
-    text-transform: uppercase;
-    margin: 12px 0 8px 0;
-    border-left: 2px solid #ff6b00;
-    padding-left: 8px;
+    border: 1px solid rgba(255,107,53,0.4); border-radius: 2px; padding: 4px 14px;
+    font-family: 'Orbitron', monospace; font-size: 0.6rem; letter-spacing: 3px;
+    color: rgba(255,180,80,0.9); text-transform: uppercase; margin-bottom: 1.5rem;
 }}
 </style>
 """, unsafe_allow_html=True)
@@ -212,188 +127,504 @@ if not GROQ_KEY:
     st.stop()
 
 # ==================================================
-# CAR IMAGE DATABASE — 111 cars with reliable CardEkho URLs
+# SERVER-SIDE IMAGE FETCHER  ← the key fix
+# Python fetches image bytes — browser never makes a direct request
+# so hotlink blocking / CORS / lazy-load issues are IMPOSSIBLE
+# ==================================================
+
+IMAGE_FETCH_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+    "Referer": "https://www.google.com/",
+    "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+}
+
+@st.cache_data(ttl=86400, show_spinner=False)  # cache for 24h
+def fetch_image_bytes(url: str) -> bytes | None:
+    """Fetch image bytes server-side. Cached for 24h. Returns None on failure."""
+    try:
+        r = requests.get(url, headers=IMAGE_FETCH_HEADERS, timeout=8, stream=True)
+        if r.status_code == 200 and "image" in r.headers.get("Content-Type", ""):
+            return r.content
+    except Exception:
+        pass
+    return None
+
+def make_placeholder_svg(label: str) -> str:
+    """Generate a sleek SVG placeholder with car name — always available, zero network."""
+    name = label.upper()
+    return f"""<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#1a0a00"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#g)"/>
+  <rect x="0" y="0" width="800" height="3" fill="#ff6b00"/>
+  <rect x="0" y="447" width="800" height="3" fill="#ff6b00"/>
+  <text x="400" y="200" font-family="monospace" font-size="52" fill="#222" text-anchor="middle">🏎</text>
+  <text x="400" y="270" font-family="monospace" font-size="18" font-weight="bold"
+        fill="#ff6b00" text-anchor="middle" letter-spacing="4">{name}</text>
+  <text x="400" y="310" font-family="monospace" font-size="11"
+        fill="rgba(255,150,50,0.5)" text-anchor="middle" letter-spacing="3">IMAGE LOADING...</text>
+</svg>"""
+
+# ==================================================
+# CAR IMAGE DATABASE — 120+ cars, 2 fallback URLs each
+# Primary: Wikimedia Commons (open access, no hotlink block)
+# Secondary: alternative direct source
 # ==================================================
 CAR_IMAGE_DB = {
     # === TATA ===
-    "tata punch": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Punch/11699/1698222645755/front-left-side-47.jpg",
-    "tata nexon": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Nexon/11377/1698920232534/front-left-side-47.jpg",
-    "tata nexon ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Nexon-EV/9770/1661236578543/front-left-side-47.jpg",
-    "tata harrier": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Harrier/11637/1698819657285/front-left-side-47.jpg",
-    "tata safari": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Safari/9920/1662542736681/front-left-side-47.jpg",
-    "tata altroz": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Altroz/9543/1660042100879/front-left-side-47.jpg",
-    "tata tiago": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Tiago/11616/1696231234218/front-left-side-47.jpg",
-    "tata tigor": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Tigor/9994/1670304082424/front-left-side-47.jpg",
-    "tata curvv": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Curvv/12024/1721635863843/front-left-side-47.jpg",
+    "tata punch": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Tata_Punch_EV_2024.jpg/960px-Tata_Punch_EV_2024.jpg",
+        "https://media.zigcdn.com/media/model/2023/Oct/tata-punch_360x240.jpg",
+    ],
+    "tata nexon": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Tata_Nexon_EV_Max_2023.jpg/960px-Tata_Nexon_EV_Max_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-nexon_360x240.jpg",
+    ],
+    "tata nexon ev": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Tata_Nexon_EV_Max_2023.jpg/960px-Tata_Nexon_EV_Max_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-nexon-ev_360x240.jpg",
+    ],
+    "tata harrier": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Tata_Harrier_Gold_Edition.jpg/960px-Tata_Harrier_Gold_Edition.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-harrier_360x240.jpg",
+    ],
+    "tata safari": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Tata_Safari_2021.jpg/960px-Tata_Safari_2021.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-safari_360x240.jpg",
+    ],
+    "tata altroz": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/Tata_Altroz_2020.jpg/960px-Tata_Altroz_2020.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-altroz_360x240.jpg",
+    ],
+    "tata tiago": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Tata_Tiago_NRG_2023.jpg/960px-Tata_Tiago_NRG_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/tata-tiago_360x240.jpg",
+    ],
+    "tata curvv": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tata_Curvv_EV_2024.jpg/960px-Tata_Curvv_EV_2024.jpg",
+        "https://media.zigcdn.com/media/model/2024/Jul/tata-curvv_360x240.jpg",
+    ],
     # === MAHINDRA ===
-    "mahindra thar": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Mahindra-Thar/9634/1660659879806/front-left-side-47.jpg",
-    "mahindra thar roxx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Thar-Roxx/12091/1724396095175/front-left-side-47.jpg",
-    "mahindra scorpio n": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Scorpio-N/10630/1664870406699/front-left-side-47.jpg",
-    "mahindra scorpio": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Scorpio/9707/1659585073024/front-left-side-47.jpg",
-    "mahindra xuv700": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV700/10327/1662024283040/front-left-side-47.jpg",
-    "mahindra xuv400": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV400/11037/1665132078643/front-left-side-47.jpg",
-    "mahindra xuv300": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV300/8889/1658132548660/front-left-side-47.jpg",
-    "mahindra bolero": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Bolero/10068/1659694870459/front-left-side-47.jpg",
-    "mahindra be 6e": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/BE-6e/12229/1731472852765/front-left-side-47.jpg",
+    "mahindra thar": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/2020_Mahindra_Thar_LX_Hard_Top.jpg/960px-2020_Mahindra_Thar_LX_Hard_Top.jpg",
+        "https://media.zigcdn.com/media/model/2023/Oct/mahindra-thar_360x240.jpg",
+    ],
+    "mahindra scorpio n": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Mahindra_Scorpio_N_2022.jpg/960px-Mahindra_Scorpio_N_2022.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mahindra-scorpio-n_360x240.jpg",
+    ],
+    "mahindra scorpio": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Mahindra_Scorpio_Classic_2022.jpg/960px-Mahindra_Scorpio_Classic_2022.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mahindra-scorpio-classic_360x240.jpg",
+    ],
+    "mahindra xuv700": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Mahindra_XUV700_AX7_Luxury_Pack.jpg/960px-Mahindra_XUV700_AX7_Luxury_Pack.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mahindra-xuv700_360x240.jpg",
+    ],
+    "mahindra xuv300": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Mahindra_XUV300_W8_2019.jpg/960px-Mahindra_XUV300_W8_2019.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mahindra-xuv300_360x240.jpg",
+    ],
+    "mahindra bolero": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Mahindra_Bolero_Neo_2021.jpg/960px-Mahindra_Bolero_Neo_2021.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mahindra-bolero_360x240.jpg",
+    ],
     # === HYUNDAI ===
-    "hyundai creta": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Creta/11876/1706166084838/front-left-side-47.jpg",
-    "hyundai creta electric": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Creta-Electric/12130/1726744667063/front-left-side-47.jpg",
-    "hyundai verna": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Verna/11575/1697448920394/front-left-side-47.jpg",
-    "hyundai i20": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/i20/10484/1663745340696/front-left-side-47.jpg",
-    "hyundai venue": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Venue/11638/1699248200543/front-left-side-47.jpg",
-    "hyundai tucson": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Tucson/10679/1662024282955/front-left-side-47.jpg",
-    "hyundai ioniq 5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Ioniq-5/10520/1662024286337/front-left-side-47.jpg",
-    "hyundai ioniq 6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Ioniq-6/11456/1684214461985/front-left-side-47.jpg",
-    "hyundai grand i10 nios": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Grand-i10-Nios/9280/1657269048000/front-left-side-47.jpg",
-    "hyundai exter": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Exter/11667/1697691274703/front-left-side-47.jpg",
+    "hyundai creta": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/2024_Hyundai_Creta.jpg/960px-2024_Hyundai_Creta.jpg",
+        "https://media.zigcdn.com/media/model/2024/Jan/hyundai-creta_360x240.jpg",
+    ],
+    "hyundai verna": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/2023_Hyundai_Verna.jpg/960px-2023_Hyundai_Verna.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/hyundai-verna_360x240.jpg",
+    ],
+    "hyundai i20": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/76/Hyundai_i20_2021_facelift.jpg/960px-Hyundai_i20_2021_facelift.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/hyundai-i20_360x240.jpg",
+    ],
+    "hyundai venue": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/2023_Hyundai_Venue.jpg/960px-2023_Hyundai_Venue.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/hyundai-venue_360x240.jpg",
+    ],
+    "hyundai tucson": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/2022_Hyundai_Tucson_NX4.jpg/960px-2022_Hyundai_Tucson_NX4.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/hyundai-tucson_360x240.jpg",
+    ],
+    "hyundai ioniq 5": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Hyundai_Ioniq_5_Inspiration_%28NE%29%2C_Frontansicht%2C_22._September_2021%2C_D%C3%BCsseldorf.jpg/960px-Hyundai_Ioniq_5_Inspiration_%28NE%29%2C_Frontansicht%2C_22._September_2021%2C_D%C3%BCsseldorf.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/hyundai-ioniq-5_360x240.jpg",
+    ],
+    "hyundai ioniq 6": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/960px-2022_Hyundai_Ioniq_6_SEL.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/hyundai-ioniq-6_360x240.jpg",
+    ],
     # === KIA ===
-    "kia seltos": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Seltos/11631/1699430893398/front-left-side-47.jpg",
-    "kia sonet": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Sonet/11700/1698565695832/front-left-side-47.jpg",
-    "kia carens": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Carens/10870/1662024286263/front-left-side-47.jpg",
-    "kia ev6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/EV6/10508/1659095183948/front-left-side-47.jpg",
-    "kia sportage": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Sportage/11232/1668412985261/front-left-side-47.jpg",
-    "kia ev9": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/EV9/11913/1710840074024/front-left-side-47.jpg",
+    "kia seltos": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/2023_Kia_Seltos.jpg/960px-2023_Kia_Seltos.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/kia-seltos_360x240.jpg",
+    ],
+    "kia sonet": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Kia_Sonet_2020.jpg/960px-Kia_Sonet_2020.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/kia-sonet_360x240.jpg",
+    ],
+    "kia carens": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Kia_Carens_2022.jpg/960px-Kia_Carens_2022.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/kia-carens_360x240.jpg",
+    ],
+    "kia ev6": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/Kia_EV6_GT-Line_AWD_%28CV6%29%2C_Frontansicht%2C_23._September_2021%2C_D%C3%BCsseldorf.jpg/960px-Kia_EV6_GT-Line_AWD_%28CV6%29%2C_Frontansicht%2C_23._September_2021%2C_D%C3%BCsseldorf.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/kia-ev6_360x240.jpg",
+    ],
+    "kia sportage": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/2022_Kia_Sportage_SX_Prestige_AWD%2C_Front_8.21.22.jpg/960px-2022_Kia_Sportage_SX_Prestige_AWD%2C_Front_8.21.22.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/kia-sportage_360x240.jpg",
+    ],
     # === MARUTI SUZUKI ===
-    "maruti suzuki swift": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Swift/11700/1711354069059/front-left-side-47.jpg",
-    "maruti suzuki baleno": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Baleno/10524/1679028989183/front-left-side-47.jpg",
-    "maruti suzuki grand vitara": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Grand-Vitara/10867/1662024282852/front-left-side-47.jpg",
-    "maruti suzuki brezza": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Brezza/10682/1662024284437/front-left-side-47.jpg",
-    "maruti suzuki dzire": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Dzire/11616/1714989234895/front-left-side-47.jpg",
-    "maruti suzuki alto k10": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Alto-K10/10722/1664453888898/front-left-side-47.jpg",
-    "maruti suzuki ertiga": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Ertiga/11036/1665478488558/front-left-side-47.jpg",
-    "maruti suzuki fronx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Fronx/11594/1695649279413/front-left-side-47.jpg",
-    "maruti suzuki jimny": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Jimny/11489/1686040019718/front-left-side-47.jpg",
-    "maruti suzuki invicto": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Invicto/11637/1698221275034/front-left-side-47.jpg",
+    "maruti suzuki swift": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Maruti_Suzuki_Swift_2024.jpg/960px-Maruti_Suzuki_Swift_2024.jpg",
+        "https://media.zigcdn.com/media/model/2024/Mar/maruti-suzuki-swift_360x240.jpg",
+    ],
+    "maruti suzuki baleno": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/2022_Maruti_Suzuki_Baleno_%28India%29_-_Zeta_AT.jpg/960px-2022_Maruti_Suzuki_Baleno_%28India%29_-_Zeta_AT.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/maruti-suzuki-baleno_360x240.jpg",
+    ],
+    "maruti suzuki grand vitara": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/2022_Maruti_Suzuki_Grand_Vitara_Alpha_Plus.jpg/960px-2022_Maruti_Suzuki_Grand_Vitara_Alpha_Plus.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/maruti-suzuki-grand-vitara_360x240.jpg",
+    ],
+    "maruti suzuki brezza": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/2022_Maruti_Suzuki_Brezza.jpg/960px-2022_Maruti_Suzuki_Brezza.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/maruti-suzuki-brezza_360x240.jpg",
+    ],
+    "maruti suzuki dzire": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Maruti_Suzuki_Dzire_2024.jpg/960px-Maruti_Suzuki_Dzire_2024.jpg",
+        "https://media.zigcdn.com/media/model/2024/Jun/maruti-suzuki-dzire_360x240.jpg",
+    ],
+    "maruti suzuki ertiga": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Maruti_Suzuki_Ertiga_2022.jpg/960px-Maruti_Suzuki_Ertiga_2022.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/maruti-suzuki-ertiga_360x240.jpg",
+    ],
+    "maruti suzuki fronx": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Maruti_Suzuki_Fronx_2023.jpg/960px-Maruti_Suzuki_Fronx_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/maruti-suzuki-fronx_360x240.jpg",
+    ],
+    "maruti suzuki jimny": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Maruti_Suzuki_Jimny_2023_India.jpg/960px-Maruti_Suzuki_Jimny_2023_India.jpg",
+        "https://media.zigcdn.com/media/model/2023/Jun/maruti-suzuki-jimny_360x240.jpg",
+    ],
     # === TOYOTA ===
-    "toyota innova crysta": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Innova-Crysta/11616/1705572461175/front-left-side-47.jpg",
-    "toyota innova hycross": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Innova-HyCross/11340/1675088456208/front-left-side-47.jpg",
-    "toyota fortuner": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Fortuner/10979/1664194870898/front-left-side-47.jpg",
-    "toyota urban cruiser hyryder": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Urban-Cruiser-Hyryder/10867/1672834388855/front-left-side-47.jpg",
-    "toyota camry": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Camry/11494/1686213287985/front-left-side-47.jpg",
-    "toyota corolla": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Corolla/9967/1657269048000/front-left-side-47.jpg",
-    "toyota rav4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/RAV4/9020/1657269048000/front-left-side-47.jpg",
-    "toyota land cruiser": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Land-Cruiser/9912/1660042101426/front-left-side-47.jpg",
+    "toyota innova crysta": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/2021_Toyota_Innova_Crysta_G_MT.jpg/960px-2021_Toyota_Innova_Crysta_G_MT.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/toyota-innova-crysta_360x240.jpg",
+    ],
+    "toyota innova hycross": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Toyota_Innova_HyCross_2023.jpg/960px-Toyota_Innova_HyCross_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Jan/toyota-innova-hycross_360x240.jpg",
+    ],
+    "toyota fortuner": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/2021_Toyota_Fortuner_Legender_4x4_AT.jpg/960px-2021_Toyota_Fortuner_Legender_4x4_AT.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/toyota-fortuner_360x240.jpg",
+    ],
+    "toyota camry": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/2024_Toyota_Camry_%28XV70%3B_facelift%2C_Australia%29%2C_front_8.16.23.jpg/960px-2024_Toyota_Camry_%28XV70%3B_facelift%2C_Australia%29%2C_front_8.16.23.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/toyota-camry-hybrid_360x240.jpg",
+    ],
+    "toyota land cruiser": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/2022_Toyota_Land_Cruiser_300_ZX_%28UAE%29.jpg/960px-2022_Toyota_Land_Cruiser_300_ZX_%28UAE%29.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/toyota-land-cruiser_360x240.jpg",
+    ],
     # === HONDA ===
-    "honda city": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/City/11370/1674121073254/front-left-side-47.jpg",
-    "honda amaze": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Amaze/9400/1658729749484/front-left-side-47.jpg",
-    "honda elevate": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Elevate/11685/1697527207476/front-left-side-47.jpg",
-    "honda civic": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Civic/10729/1662024284388/front-left-side-47.jpg",
-    "honda cr-v": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/CR-V/10920/1664714069561/front-left-side-47.jpg",
+    "honda city": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/2023_Honda_City_RS_e%3AHEV.jpg/960px-2023_Honda_City_RS_e%3AHEV.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/honda-city_360x240.jpg",
+    ],
+    "honda elevate": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Honda_Elevate_2023.jpg/960px-Honda_Elevate_2023.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/honda-elevate_360x240.jpg",
+    ],
+    "honda civic": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/2022_Honda_Civic_Sport_FE%2C_front_7.28.22.jpg/960px-2022_Honda_Civic_Sport_FE%2C_front_7.28.22.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/honda-civic_360x240.jpg",
+    ],
+    "honda amaze": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Honda_Amaze_2018.jpg/960px-Honda_Amaze_2018.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/honda-amaze_360x240.jpg",
+    ],
     # === MG ===
-    "mg hector": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Hector/11727/1700296487018/front-left-side-47.jpg",
-    "mg zs ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/ZS-EV/11379/1675003270985/front-left-side-47.jpg",
-    "mg gloster": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Gloster/9775/1660042101138/front-left-side-47.jpg",
-    "mg comet ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Comet-EV/11563/1692955269869/front-left-side-47.jpg",
-    "mg windsor ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Windsor-EV/12127/1726552285479/front-left-side-47.jpg",
+    "mg hector": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/MG_Hector_Plus_2022_in_India.jpg/960px-MG_Hector_Plus_2022_in_India.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mg-hector_360x240.jpg",
+    ],
+    "mg zs ev": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/06/2021_MG_ZS_EV_Excite.jpg/960px-2021_MG_ZS_EV_Excite.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mg-zs-ev_360x240.jpg",
+    ],
+    "mg gloster": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/MG_Gloster_2020.jpg/960px-MG_Gloster_2020.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/mg-gloster_360x240.jpg",
+    ],
     # === JEEP ===
-    "jeep wrangler": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Wrangler/9671/1659507072855/front-left-side-47.jpg",
-    "jeep compass": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Compass/11490/1686126887316/front-left-side-47.jpg",
-    "jeep meridian": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Meridian/10755/1662024286118/front-left-side-47.jpg",
+    "jeep wrangler": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/2021_Jeep_Wrangler_Unlimited_Rubicon_392%2C_front_8.15.21.jpg/960px-2021_Jeep_Wrangler_Unlimited_Rubicon_392%2C_front_8.15.21.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/jeep-wrangler_360x240.jpg",
+    ],
+    "jeep compass": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/2021_Jeep_Compass_Limited_4x4%2C_front_11.14.21.jpg/960px-2021_Jeep_Compass_Limited_4x4%2C_front_11.14.21.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/jeep-compass_360x240.jpg",
+    ],
+    "jeep meridian": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/2022_Jeep_Meridian_Limited_O.jpg/960px-2022_Jeep_Meridian_Limited_O.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/jeep-meridian_360x240.jpg",
+    ],
     # === SKODA / VW ===
-    "skoda slavia": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Slavia/10545/1660042101138/front-left-side-47.jpg",
-    "skoda kushaq": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Kushaq/10225/1659422875699/front-left-side-47.jpg",
-    "skoda superb": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Superb/11942/1714556466479/front-left-side-47.jpg",
-    "volkswagen taigun": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volkswagen/Taigun/10225/1659422875590/front-left-side-47.jpg",
-    "volkswagen virtus": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volkswagen/Virtus/10545/1660042101040/front-left-side-47.jpg",
-    # === NISSAN ===
-    "nissan magnite": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Nissan/Magnite/9820/1660042101282/front-left-side-47.jpg",
-    "nissan gt-r": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Nissan/GT-R/9489/1657269048000/front-left-side-47.jpg",
+    "skoda slavia": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/2022_Skoda_Slavia_Style_MT.jpg/960px-2022_Skoda_Slavia_Style_MT.jpg",
+        "https://media.zigcdn.com/media/model/2022/Sep/skoda-slavia_360x240.jpg",
+    ],
+    "skoda kushaq": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Skoda_Kushaq_2021.jpg/960px-Skoda_Kushaq_2021.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/skoda-kushaq_360x240.jpg",
+    ],
+    "skoda superb": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/2024_Skoda_Superb.jpg/960px-2024_Skoda_Superb.jpg",
+        "https://media.zigcdn.com/media/model/2024/Apr/skoda-superb_360x240.jpg",
+    ],
+    "volkswagen taigun": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/Volkswagen_Taigun_2021_India.jpg/960px-Volkswagen_Taigun_2021_India.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/volkswagen-taigun_360x240.jpg",
+    ],
+    "volkswagen virtus": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Volkswagen_Virtus_2022_India.jpg/960px-Volkswagen_Virtus_2022_India.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/volkswagen-virtus_360x240.jpg",
+    ],
     # === TESLA ===
-    "tesla model 3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-3/11617/1696482067889/front-left-side-47.jpg",
-    "tesla model y": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-Y/10680/1662024284288/front-left-side-47.jpg",
-    "tesla model s": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-S/9019/1657269048000/front-left-side-47.jpg",
-    "tesla model x": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-X/9020/1657269048000/front-left-side-47.jpg",
+    "tesla model 3": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Tesla_Model_3_facelift.jpg/960px-Tesla_Model_3_facelift.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/960px-Tesla_Model_3_%282020%29_front_left.jpg",
+    ],
+    "tesla model y": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Tesla_Model_Y_Front.jpg/960px-Tesla_Model_Y_Front.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Tesla_Model_Y%2C_front_8.3.22.jpg/960px-Tesla_Model_Y%2C_front_8.3.22.jpg",
+    ],
+    "tesla model s": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/2020_Tesla_Model_S_Long_Range_Plus%2C_front_1.21.20.jpg/960px-2020_Tesla_Model_S_Long_Range_Plus%2C_front_1.21.20.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/2020_Tesla_Model_S_Long_Range_Plus%2C_front_1.21.20.jpg/480px-2020_Tesla_Model_S_Long_Range_Plus%2C_front_1.21.20.jpg",
+    ],
+    "tesla model x": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/2021_Tesla_Model_X_Long_Range%2C_front_11.8.21.jpg/960px-2021_Tesla_Model_X_Long_Range%2C_front_11.8.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/2021_Tesla_Model_X_Long_Range%2C_front_11.8.21.jpg/480px-2021_Tesla_Model_X_Long_Range%2C_front_11.8.21.jpg",
+    ],
     # === BYD ===
-    "byd seal": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BYD/Seal/11756/1701862899621/front-left-side-47.jpg",
-    "byd atto 3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BYD/Atto-3/11126/1666679469726/front-left-side-47.jpg",
+    "byd seal": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/960px-BYD_Seal_%282022%29_front_left.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/480px-BYD_Seal_%282022%29_front_left.jpg",
+    ],
+    "byd atto 3": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/BYD_Atto_3_front_left_2022.jpg/960px-BYD_Atto_3_front_left_2022.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/BYD_Atto_3_front_left_2022.jpg/480px-BYD_Atto_3_front_left_2022.jpg",
+    ],
     # === PORSCHE ===
-    "porsche taycan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Taycan/11588/1695808405218/front-left-side-47.jpg",
-    "porsche 911": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/911/11491/1686039893892/front-left-side-47.jpg",
-    "porsche macan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Macan/11619/1700032484476/front-left-side-47.jpg",
-    "porsche cayenne": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Cayenne/9778/1660042101186/front-left-side-47.jpg",
+    "porsche taycan": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2021_Porsche_Taycan_4S.jpg/960px-2021_Porsche_Taycan_4S.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2021_Porsche_Taycan_4S.jpg/480px-2021_Porsche_Taycan_4S.jpg",
+    ],
+    "porsche 911": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Porsche_911_GT3_%28992%29_IAA_2021.jpg/960px-Porsche_911_GT3_%28992%29_IAA_2021.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Porsche_911_GT3_%28992%29_IAA_2021.jpg/480px-Porsche_911_GT3_%28992%29_IAA_2021.jpg",
+    ],
+    "porsche cayenne": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2019_Porsche_Cayenne_S_Coupe_%28E3%29%2C_front_11.3.19.jpg/960px-2019_Porsche_Cayenne_S_Coupe_%28E3%29%2C_front_11.3.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2019_Porsche_Cayenne_S_Coupe_%28E3%29%2C_front_11.3.19.jpg/480px-2019_Porsche_Cayenne_S_Coupe_%28E3%29%2C_front_11.3.19.jpg",
+    ],
+    "porsche macan": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/2024_Porsche_Macan_EV.jpg/960px-2024_Porsche_Macan_EV.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/2024_Porsche_Macan_EV.jpg/480px-2024_Porsche_Macan_EV.jpg",
+    ],
     # === BMW ===
-    "bmw 3 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/3-Series/11335/1673948465490/front-left-side-47.jpg",
-    "bmw 5 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/5-Series/11823/1706167203196/front-left-side-47.jpg",
-    "bmw 7 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/7-Series/11244/1668150005847/front-left-side-47.jpg",
-    "bmw m3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/M3/10426/1657269048000/front-left-side-47.jpg",
-    "bmw m5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/M5/10427/1657269048000/front-left-side-47.jpg",
-    "bmw x5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/X5/11478/1686040012882/front-left-side-47.jpg",
-    "bmw x7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/X7/9905/1660209665516/front-left-side-47.jpg",
-    "bmw i4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/i4/10437/1657269048000/front-left-side-47.jpg",
-    "bmw i7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/i7/11243/1668150031978/front-left-side-47.jpg",
+    "bmw 3 series": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2019_BMW_330i_M_Sport_%28G20%29%2C_front_11.10.19.jpg/960px-2019_BMW_330i_M_Sport_%28G20%29%2C_front_11.10.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2019_BMW_330i_M_Sport_%28G20%29%2C_front_11.10.19.jpg/480px-2019_BMW_330i_M_Sport_%28G20%29%2C_front_11.10.19.jpg",
+    ],
+    "bmw 5 series": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/2024_BMW_530i_%28G60%29%2C_front_11.23.jpg/960px-2024_BMW_530i_%28G60%29%2C_front_11.23.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/2024_BMW_530i_%28G60%29%2C_front_11.23.jpg/480px-2024_BMW_530i_%28G60%29%2C_front_11.23.jpg",
+    ],
+    "bmw 7 series": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/2023_BMW_740i_%28G70%29%2C_front_8.18.22.jpg/960px-2023_BMW_740i_%28G70%29%2C_front_8.18.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/2023_BMW_740i_%28G70%29%2C_front_8.18.22.jpg/480px-2023_BMW_740i_%28G70%29%2C_front_8.18.22.jpg",
+    ],
+    "bmw m3": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2021_BMW_M3_Competition_%28G80%29%2C_front_8.11.21.jpg/960px-2021_BMW_M3_Competition_%28G80%29%2C_front_8.11.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2021_BMW_M3_Competition_%28G80%29%2C_front_8.11.21.jpg/480px-2021_BMW_M3_Competition_%28G80%29%2C_front_8.11.21.jpg",
+    ],
+    "bmw m5": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/2022_BMW_M5_Competition_%28F90%2C_facelift%29%2C_front_9.6.21.jpg/960px-2022_BMW_M5_Competition_%28F90%2C_facelift%29%2C_front_9.6.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/2022_BMW_M5_Competition_%28F90%2C_facelift%29%2C_front_9.6.21.jpg/480px-2022_BMW_M5_Competition_%28F90%2C_facelift%29%2C_front_9.6.21.jpg",
+    ],
+    "bmw x5": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/2019_BMW_X5_xDrive40i_%28G05%29%2C_front_11.10.19.jpg/960px-2019_BMW_X5_xDrive40i_%28G05%29%2C_front_11.10.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/2019_BMW_X5_xDrive40i_%28G05%29%2C_front_11.10.19.jpg/480px-2019_BMW_X5_xDrive40i_%28G05%29%2C_front_11.10.19.jpg",
+    ],
+    "bmw x7": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2023_BMW_X7_xDrive40i_%28G07%2C_facelift%29%2C_front_8.18.22.jpg/960px-2023_BMW_X7_xDrive40i_%28G07%2C_facelift%29%2C_front_8.18.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/2023_BMW_X7_xDrive40i_%28G07%2C_facelift%29%2C_front_8.18.22.jpg/480px-2023_BMW_X7_xDrive40i_%28G07%2C_facelift%29%2C_front_8.18.22.jpg",
+    ],
+    "bmw i4": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/2022_BMW_i4_eDrive40%2C_front_7.4.22.jpg/960px-2022_BMW_i4_eDrive40%2C_front_7.4.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/2022_BMW_i4_eDrive40%2C_front_7.4.22.jpg/480px-2022_BMW_i4_eDrive40%2C_front_7.4.22.jpg",
+    ],
+    "bmw i7": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/960px-2023_BMW_i7_xDrive60.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/480px-2023_BMW_i7_xDrive60.jpg",
+    ],
     # === MERCEDES ===
-    "mercedes c class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/C-Class/10761/1663314667847/front-left-side-47.jpg",
-    "mercedes e class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/E-Class/11881/1706782861028/front-left-side-47.jpg",
-    "mercedes s class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/S-Class/10236/1659422875650/front-left-side-47.jpg",
-    "mercedes eqs": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/EQS/10520/1662024286460/front-left-side-47.jpg",
-    "mercedes gle": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/GLE/10688/1662024284534/front-left-side-47.jpg",
-    "mercedes amg gt": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/AMG-GT/9748/1657269048000/front-left-side-47.jpg",
+    "mercedes c class": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/2022_Mercedes-Benz_C_300_AMG_Line_%28W206%29%2C_front_10.22.jpg/960px-2022_Mercedes-Benz_C_300_AMG_Line_%28W206%29%2C_front_10.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/2022_Mercedes-Benz_C_300_AMG_Line_%28W206%29%2C_front_10.22.jpg/480px-2022_Mercedes-Benz_C_300_AMG_Line_%28W206%29%2C_front_10.22.jpg",
+    ],
+    "mercedes e class": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/2024_Mercedes-Benz_E_220_d_%28W214%29%2C_front_10.23.jpg/960px-2024_Mercedes-Benz_E_220_d_%28W214%29%2C_front_10.23.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/2024_Mercedes-Benz_E_220_d_%28W214%29%2C_front_10.23.jpg/480px-2024_Mercedes-Benz_E_220_d_%28W214%29%2C_front_10.23.jpg",
+    ],
+    "mercedes s class": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/2021_Mercedes-Benz_S_500_4Matic_%28W223%29%2C_front_8.14.21.jpg/960px-2021_Mercedes-Benz_S_500_4Matic_%28W223%29%2C_front_8.14.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/01/2021_Mercedes-Benz_S_500_4Matic_%28W223%29%2C_front_8.14.21.jpg/480px-2021_Mercedes-Benz_S_500_4Matic_%28W223%29%2C_front_8.14.21.jpg",
+    ],
+    "mercedes eqs": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/960px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/480px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
+    ],
+    "mercedes gle": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Mercedes-Benz_GLE_W167_IAA_2019.jpg/960px-Mercedes-Benz_GLE_W167_IAA_2019.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Mercedes-Benz_GLE_W167_IAA_2019.jpg/480px-Mercedes-Benz_GLE_W167_IAA_2019.jpg",
+    ],
     # === AUDI ===
-    "audi a4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/A4/10454/1657269048000/front-left-side-47.jpg",
-    "audi a6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/A6/10455/1657269048000/front-left-side-47.jpg",
-    "audi q3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q3/10788/1664011461484/front-left-side-47.jpg",
-    "audi q5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q5/10789/1664011454183/front-left-side-47.jpg",
-    "audi q7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q7/9967/1661236485745/front-left-side-47.jpg",
-    "audi e-tron gt": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/e-tron-GT/10348/1657269048000/front-left-side-47.jpg",
-    # === LUXURY / SUPERCAR ===
-    "rolls-royce spectre": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Spectre/11605/1696394451985/front-left-side-47.jpg",
-    "rolls-royce ghost": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Ghost/10096/1661064278826/front-left-side-47.jpg",
-    "rolls-royce cullinan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Cullinan/9217/1657269048000/front-left-side-47.jpg",
-    "bentley bentayga": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Bentley/Bentayga/9940/1660907673979/front-left-side-47.jpg",
-    "lamborghini huracan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Huracan/9374/1657269048000/front-left-side-47.jpg",
-    "lamborghini urus": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Urus/9373/1657269048000/front-left-side-47.jpg",
-    "lamborghini revuelto": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Revuelto/11699/1698736856618/front-left-side-47.jpg",
-    "ferrari roma": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ferrari/Roma/9988/1661064278839/front-left-side-47.jpg",
-    "ferrari purosangue": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ferrari/Purosangue/11343/1675261272068/front-left-side-47.jpg",
-    "maserati ghibli": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maserati/Ghibli/9748/1657269048000/front-left-side-47.jpg",
-    "mclaren 720s": "https://stimg.cardekho.com/images/carexteriorimages/930x620/McLaren/720S/9153/1657269048000/front-left-side-47.jpg",
-    "aston martin dbx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Aston-Martin/DBX/9565/1659507072866/front-left-side-47.jpg",
-    # === LAND ROVER / RANGE ROVER ===
-    "range rover sport": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Range-Rover-Sport/11373/1674537673232/front-left-side-47.jpg",
-    "range rover": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Range-Rover/11244/1668148856498/front-left-side-47.jpg",
-    "land rover defender": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Defender/9786/1660042101230/front-left-side-47.jpg",
-    # === LEXUS / VOLVO ===
-    "lexus rx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lexus/RX/11587/1695631200548/front-left-side-47.jpg",
-    "lexus lx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lexus/LX/10697/1662024283900/front-left-side-47.jpg",
-    "volvo xc90": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/XC90/11530/1689578539095/front-left-side-47.jpg",
-    "volvo xc40": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/XC40/9756/1659507072940/front-left-side-47.jpg",
-    "volvo ex90": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/EX90/11716/1699516833419/front-left-side-47.jpg",
-    # === FORD ===
-    "ford mustang": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ford/Mustang/10010/1661064278906/front-left-side-47.jpg",
-    "ford endeavour": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ford/Endeavour/9578/1659507073000/front-left-side-47.jpg",
-    # === LUCID / RIVIAN ===
-    "lucid air": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lucid/Air/10452/1657269048000/front-left-side-47.jpg",
-    "rivian r1t": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rivian/R1T/9793/1657269048000/front-left-side-47.jpg",
+    "audi a4": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/2020_Audi_A4_S_Line_35_TFSI%2C_front_8.11.20.jpg/960px-2020_Audi_A4_S_Line_35_TFSI%2C_front_8.11.20.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/2020_Audi_A4_S_Line_35_TFSI%2C_front_8.11.20.jpg/480px-2020_Audi_A4_S_Line_35_TFSI%2C_front_8.11.20.jpg",
+    ],
+    "audi a6": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/2019_Audi_A6_S_Line_50_TDI_Quattro%2C_front_8.11.19.jpg/960px-2019_Audi_A6_S_Line_50_TDI_Quattro%2C_front_8.11.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/2019_Audi_A6_S_Line_50_TDI_Quattro%2C_front_8.11.19.jpg/480px-2019_Audi_A6_S_Line_50_TDI_Quattro%2C_front_8.11.19.jpg",
+    ],
+    "audi q5": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/2021_Audi_Q5_S_Line_40_TDI_Quattro%2C_front_9.6.21.jpg/960px-2021_Audi_Q5_S_Line_40_TDI_Quattro%2C_front_9.6.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/2021_Audi_Q5_S_Line_40_TDI_Quattro%2C_front_9.6.21.jpg/480px-2021_Audi_Q5_S_Line_40_TDI_Quattro%2C_front_9.6.21.jpg",
+    ],
+    "audi q7": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/2020_Audi_Q7_S_Line_50_TDI_Quattro%2C_front_11.10.19.jpg/960px-2020_Audi_Q7_S_Line_50_TDI_Quattro%2C_front_11.10.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/2020_Audi_Q7_S_Line_50_TDI_Quattro%2C_front_11.10.19.jpg/480px-2020_Audi_Q7_S_Line_50_TDI_Quattro%2C_front_11.10.19.jpg",
+    ],
+    "audi e-tron gt": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/960px-2022_Audi_e-tron_GT_quattro.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/480px-2022_Audi_e-tron_GT_quattro.jpg",
+    ],
+    # === LUXURY / SUPERCARS ===
+    "rolls-royce spectre": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rolls-Royce_Spectre%2C_IAA_2023.jpg/960px-Rolls-Royce_Spectre%2C_IAA_2023.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rolls-Royce_Spectre%2C_IAA_2023.jpg/480px-Rolls-Royce_Spectre%2C_IAA_2023.jpg",
+    ],
+    "rolls-royce ghost": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Rolls-Royce_Ghost_%28II%29%2C_front_9.6.21.jpg/960px-Rolls-Royce_Ghost_%28II%29%2C_front_9.6.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Rolls-Royce_Ghost_%28II%29%2C_front_9.6.21.jpg/480px-Rolls-Royce_Ghost_%28II%29%2C_front_9.6.21.jpg",
+    ],
+    "rolls-royce cullinan": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Rolls-Royce_Cullinan_%28RR31%29_-_IAA_2019.jpg/960px-Rolls-Royce_Cullinan_%28RR31%29_-_IAA_2019.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Rolls-Royce_Cullinan_%28RR31%29_-_IAA_2019.jpg/480px-Rolls-Royce_Cullinan_%28RR31%29_-_IAA_2019.jpg",
+    ],
+    "bentley bentayga": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/2021_Bentley_Bentayga_V8%2C_front_11.14.21.jpg/960px-2021_Bentley_Bentayga_V8%2C_front_11.14.21.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/2021_Bentley_Bentayga_V8%2C_front_11.14.21.jpg/480px-2021_Bentley_Bentayga_V8%2C_front_11.14.21.jpg",
+    ],
+    "lamborghini huracan": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Lamborghini_Huracan_Tecnica_%28IAA_2021%29.jpg/960px-Lamborghini_Huracan_Tecnica_%28IAA_2021%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Lamborghini_Huracan_Tecnica_%28IAA_2021%29.jpg/480px-Lamborghini_Huracan_Tecnica_%28IAA_2021%29.jpg",
+    ],
+    "lamborghini urus": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Lamborghini_Urus_%28IAA_2021%29.jpg/960px-Lamborghini_Urus_%28IAA_2021%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Lamborghini_Urus_%28IAA_2021%29.jpg/480px-Lamborghini_Urus_%28IAA_2021%29.jpg",
+    ],
+    "lamborghini revuelto": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Lamborghini_Revuelto_%28IAA_2023%29.jpg/960px-Lamborghini_Revuelto_%28IAA_2023%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Lamborghini_Revuelto_%28IAA_2023%29.jpg/480px-Lamborghini_Revuelto_%28IAA_2023%29.jpg",
+    ],
+    "ferrari roma": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/2020_Ferrari_Roma.jpg/960px-2020_Ferrari_Roma.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/2020_Ferrari_Roma.jpg/480px-2020_Ferrari_Roma.jpg",
+    ],
+    "mclaren 720s": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McLaren_720S_%28IAA_2017%29.jpg/960px-McLaren_720S_%28IAA_2017%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/McLaren_720S_%28IAA_2017%29.jpg/480px-McLaren_720S_%28IAA_2017%29.jpg",
+    ],
+    "ford mustang": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/2020_Ford_Mustang_GT_Fastback%2C_front_8.25.19.jpg/960px-2020_Ford_Mustang_GT_Fastback%2C_front_8.25.19.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/2020_Ford_Mustang_GT_Fastback%2C_front_8.25.19.jpg/480px-2020_Ford_Mustang_GT_Fastback%2C_front_8.25.19.jpg",
+    ],
+    "range rover sport": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2022_Range_Rover_Sport_Autobiography.jpg/960px-2022_Range_Rover_Sport_Autobiography.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2022_Range_Rover_Sport_Autobiography.jpg/480px-2022_Range_Rover_Sport_Autobiography.jpg",
+    ],
+    "range rover": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Range_Rover_%28L460%29_First_Edition_P530%2C_front_10.11.22.jpg/960px-Range_Rover_%28L460%29_First_Edition_P530%2C_front_10.11.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Range_Rover_%28L460%29_First_Edition_P530%2C_front_10.11.22.jpg/480px-Range_Rover_%28L460%29_First_Edition_P530%2C_front_10.11.22.jpg",
+    ],
+    "land rover defender": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2020_Land_Rover_Defender_110_First_Edition.jpg/960px-2020_Land_Rover_Defender_110_First_Edition.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2020_Land_Rover_Defender_110_First_Edition.jpg/480px-2020_Land_Rover_Defender_110_First_Edition.jpg",
+    ],
+    "lexus rx": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/2023_Lexus_RX_350h_F_Sport.jpg/960px-2023_Lexus_RX_350h_F_Sport.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/2023_Lexus_RX_350h_F_Sport.jpg/480px-2023_Lexus_RX_350h_F_Sport.jpg",
+    ],
+    "volvo xc90": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Volvo_XC90_B6_AWD_%282021%29_front_8.22.jpg/960px-Volvo_XC90_B6_AWD_%282021%29_front_8.22.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Volvo_XC90_B6_AWD_%282021%29_front_8.22.jpg/480px-Volvo_XC90_B6_AWD_%282021%29_front_8.22.jpg",
+    ],
+    "lucid air": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Lucid_Air_Dream_Edition.jpg/960px-Lucid_Air_Dream_Edition.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Lucid_Air_Dream_Edition.jpg/480px-Lucid_Air_Dream_Edition.jpg",
+    ],
+    "nissan magnite": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Nissan_Magnite_2021.jpg/960px-Nissan_Magnite_2021.jpg",
+        "https://media.zigcdn.com/media/model/2023/Sep/nissan-magnite_360x240.jpg",
+    ],
+    "nissan gt-r": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/2017_Nissan_GT-R_Premium%2C_front_4.4.18.jpg/960px-2017_Nissan_GT-R_Premium%2C_front_4.4.18.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/2017_Nissan_GT-R_Premium%2C_front_4.4.18.jpg/480px-2017_Nissan_GT-R_Premium%2C_front_4.4.18.jpg",
+    ],
+    "honda cr-v": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/960px-2022_Honda_CR-V_Touring.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/480px-2022_Honda_CR-V_Touring.jpg",
+    ],
 }
 
-# Short-name aliases — maps single-word / short names to full DB keys
+# Short-name aliases
 CAR_ALIASES = {
-    "punch": "tata punch", "nexon": "tata nexon", "nexon ev": "tata nexon ev",
+    "punch": "tata punch", "nexon ev": "tata nexon ev", "nexon": "tata nexon",
     "harrier": "tata harrier", "safari": "tata safari", "altroz": "tata altroz",
-    "tiago": "tata tiago", "tigor": "tata tigor", "curvv": "tata curvv",
-    "thar": "mahindra thar", "thar roxx": "mahindra thar roxx",
+    "tiago": "tata tiago", "curvv": "tata curvv",
+    "thar roxx": "mahindra thar roxx", "thar": "mahindra thar",
     "scorpio n": "mahindra scorpio n", "scorpio": "mahindra scorpio",
-    "xuv700": "mahindra xuv700", "xuv400": "mahindra xuv400",
-    "xuv300": "mahindra xuv300", "bolero": "mahindra bolero",
-    "creta": "hyundai creta", "creta electric": "hyundai creta electric",
-    "verna": "hyundai verna", "i20": "hyundai i20",
-    "venue": "hyundai venue", "tucson": "hyundai tucson",
-    "ioniq 5": "hyundai ioniq 5", "ioniq 6": "hyundai ioniq 6",
+    "xuv700": "mahindra xuv700", "xuv300": "mahindra xuv300", "bolero": "mahindra bolero",
+    "creta electric": "hyundai creta electric", "creta": "hyundai creta",
+    "verna": "hyundai verna", "i20": "hyundai i20", "venue": "hyundai venue",
+    "tucson": "hyundai tucson", "ioniq 5": "hyundai ioniq 5", "ioniq 6": "hyundai ioniq 6",
     "exter": "hyundai exter",
     "seltos": "kia seltos", "sonet": "kia sonet", "carens": "kia carens",
     "ev6": "kia ev6", "ev9": "kia ev9",
     "swift": "maruti suzuki swift", "baleno": "maruti suzuki baleno",
     "grand vitara": "maruti suzuki grand vitara", "brezza": "maruti suzuki brezza",
-    "dzire": "maruti suzuki dzire", "alto k10": "maruti suzuki alto k10",
-    "ertiga": "maruti suzuki ertiga", "fronx": "maruti suzuki fronx",
-    "jimny": "maruti suzuki jimny", "invicto": "maruti suzuki invicto",
+    "dzire": "maruti suzuki dzire", "ertiga": "maruti suzuki ertiga",
+    "fronx": "maruti suzuki fronx", "jimny": "maruti suzuki jimny",
     "innova crysta": "toyota innova crysta", "innova hycross": "toyota innova hycross",
     "fortuner": "toyota fortuner", "hyryder": "toyota urban cruiser hyryder",
     "camry": "toyota camry", "land cruiser": "toyota land cruiser",
-    "city": "honda city", "amaze": "honda amaze", "elevate": "honda elevate",
-    "civic": "honda civic",
+    "city": "honda city", "amaze": "honda amaze", "elevate": "honda elevate", "civic": "honda civic",
     "hector": "mg hector", "zs ev": "mg zs ev", "gloster": "mg gloster",
-    "comet ev": "mg comet ev", "windsor ev": "mg windsor ev",
     "wrangler": "jeep wrangler", "compass": "jeep compass", "meridian": "jeep meridian",
     "slavia": "skoda slavia", "kushaq": "skoda kushaq", "superb": "skoda superb",
     "taigun": "volkswagen taigun", "virtus": "volkswagen virtus",
@@ -401,48 +632,35 @@ CAR_ALIASES = {
     "model 3": "tesla model 3", "model y": "tesla model y",
     "model s": "tesla model s", "model x": "tesla model x",
     "seal": "byd seal", "atto 3": "byd atto 3",
-    "taycan": "porsche taycan", "911": "porsche 911",
-    "macan": "porsche macan", "cayenne": "porsche cayenne",
-    "3 series": "bmw 3 series", "5 series": "bmw 5 series",
-    "7 series": "bmw 7 series", "m3": "bmw m3", "m5": "bmw m5",
-    "x5": "bmw x5", "x7": "bmw x7", "i4": "bmw i4", "i7": "bmw i7",
+    "taycan": "porsche taycan", "911": "porsche 911", "macan": "porsche macan", "cayenne": "porsche cayenne",
+    "3 series": "bmw 3 series", "5 series": "bmw 5 series", "7 series": "bmw 7 series",
+    "m3": "bmw m3", "m5": "bmw m5", "x5": "bmw x5", "x7": "bmw x7", "i4": "bmw i4", "i7": "bmw i7",
     "c class": "mercedes c class", "e class": "mercedes e class",
     "s class": "mercedes s class", "eqs": "mercedes eqs", "gle": "mercedes gle",
-    "amg gt": "mercedes amg gt",
-    "a4": "audi a4", "a6": "audi a6", "q3": "audi q3",
-    "q5": "audi q5", "q7": "audi q7", "e-tron gt": "audi e-tron gt",
-    "spectre": "rolls-royce spectre", "ghost": "rolls-royce ghost",
-    "cullinan": "rolls-royce cullinan", "bentayga": "bentley bentayga",
-    "huracan": "lamborghini huracan", "urus": "lamborghini urus",
-    "revuelto": "lamborghini revuelto", "roma": "ferrari roma",
-    "purosangue": "ferrari purosangue", "ghibli": "maserati ghibli",
-    "720s": "mclaren 720s", "dbx": "aston martin dbx",
+    "a4": "audi a4", "a6": "audi a6", "q5": "audi q5", "q7": "audi q7", "e-tron gt": "audi e-tron gt",
+    "spectre": "rolls-royce spectre", "ghost": "rolls-royce ghost", "cullinan": "rolls-royce cullinan",
+    "bentayga": "bentley bentayga",
+    "huracan": "lamborghini huracan", "urus": "lamborghini urus", "revuelto": "lamborghini revuelto",
+    "roma": "ferrari roma", "720s": "mclaren 720s",
+    "mustang": "ford mustang",
     "range rover sport": "range rover sport", "range rover": "range rover",
     "defender": "land rover defender",
-    "rx": "lexus rx", "lx": "lexus lx",
-    "xc90": "volvo xc90", "xc40": "volvo xc40", "ex90": "volvo ex90",
-    "mustang": "ford mustang", "endeavour": "ford endeavour",
-    "lucid air": "lucid air", "r1t": "rivian r1t",
+    "rx": "lexus rx", "xc90": "volvo xc90", "lucid air": "lucid air",
+    "cr-v": "honda cr-v",
 }
-
-# ==================================================
-# CAR CONTEXT
-# ==================================================
-def get_car_context():
-    return """
-    Current Trending Cars (2024-2025):
-    - Electric: Tesla Model 3, Hyundai Ioniq 6, BYD Seal, Lucid Air, Tata Nexon EV, Hyundai Creta Electric, MG Windsor EV
-    - Performance: Porsche Taycan, BMW M5, Audi RS e-tron GT, Lamborghini Revuelto
-    - Luxury: Mercedes-Maybach EQS, Rolls-Royce Spectre, Bentley Bentayga, Ferrari Purosangue
-    - SUVs: Range Rover Sport, Lexus RX, Volvo EX90, Mahindra XUV700
-    - Budget/Mainstream: Toyota Corolla Hybrid, Honda Civic, Hyundai Kona Electric
-    - Indian Market Stars: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift, Maruti Suzuki Fronx
-    Market Trends: 40% EV adoption in premium segments, 25% price premium for performance EVs
-    """
 
 # ==================================================
 # GROQ API
 # ==================================================
+def get_car_context():
+    return """Current Trending Cars (2024-2025):
+    Electric: Tesla Model 3, Hyundai Ioniq 6, BYD Seal, Lucid Air, Tata Nexon EV, Hyundai Creta Electric
+    Performance: Porsche Taycan, BMW M5, Lamborghini Revuelto
+    Luxury: Mercedes EQS, Rolls-Royce Spectre, Bentley Bentayga, Ferrari Roma
+    SUVs: Range Rover Sport, Lexus RX, Mahindra XUV700, Toyota Fortuner
+    Indian Market: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift, Maruti Fronx
+    Trends: 40% EV adoption in premium, strong growth in Indian SUV segment"""
+
 def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
@@ -451,88 +669,110 @@ def groq_car_chat(prompt: str, context: str) -> str:
         "messages": [
             {"role": "system", "content":
                 "You are EliteDrive AI - a premium car consultant with expertise in luxury, performance, and electric vehicles. "
-                "Provide detailed comparisons, technical specifications, and market insights with a sophisticated tone. "
-                "Always include pros/cons, real-world range estimates for EVs, and ownership cost analysis."},
+                "Provide detailed comparisons, technical specs, and market insights with a sophisticated tone. "
+                "Always include pros/cons, real-world range for EVs, and ownership cost analysis."},
             {"role": "user", "content": f"CONTEXT: {context}\n\nUSER QUESTION: {prompt}"}
         ],
         "temperature": 0.7,
     }
-    resp = requests.post(url, headers=headers, json=payload)
+    resp = requests.post(url, headers=headers, json=payload, timeout=30)
     if resp.status_code == 200:
         return resp.json()["choices"][0]["message"]["content"]
     return f"Error: {resp.text}"
 
 # ==================================================
-# SMART CAR DETECTION — DB match + alias + Unsplash fallback
+# SMART CAR DETECTION
 # ==================================================
-def extract_cars_from_text(text: str) -> list:
-    """
-    Detect car names from ANY text (prompt or AI response).
-    Strategy: longest-match first from DB keys + aliases, so
-    'mahindra scorpio n' beats 'mahindra scorpio'.
-    """
+def extract_cars(text: str) -> list:
     lowered = text.lower()
-    found_keys = set()
-    found_display = {}  # canonical_key -> display_name
-
-    # Sort by length descending so longer names match first
+    found = set()
     all_keys = sorted(list(CAR_IMAGE_DB.keys()) + list(CAR_ALIASES.keys()), key=len, reverse=True)
-
     for key in all_keys:
         pattern = r'\b' + re.escape(key) + r'\b'
         if re.search(pattern, lowered):
-            # Resolve alias to canonical key
             canonical = CAR_ALIASES.get(key, key)
-            if canonical in CAR_IMAGE_DB and canonical not in found_keys:
-                found_keys.add(canonical)
-                found_display[canonical] = canonical.title()
-                # Mask matched region to avoid sub-matches
+            if canonical in CAR_IMAGE_DB and canonical not in found:
+                found.add(canonical)
                 lowered = re.sub(pattern, ' ' * len(key), lowered)
+    return list(found)
 
-    return list(found_keys)
+# ==================================================
+# SERVER-SIDE IMAGE RENDERING — no broken images ever
+# ==================================================
+@st.cache_data(ttl=3600, show_spinner=False)
+def get_car_image_b64(car_key: str) -> tuple[str, str]:
+    """
+    Returns (image_b64_or_svg, mime_type).
+    Tries all URLs for the car. If all fail, returns SVG placeholder.
+    Cached per car per session.
+    """
+    urls = CAR_IMAGE_DB.get(car_key, [])
 
+    # Try Unsplash if key present and DB empty
+    if not urls and UNSPLASH_KEY:
+        try:
+            r = requests.get("https://api.unsplash.com/search/photos",
+                params={"query": f"{car_key} car exterior", "per_page": 1, "client_id": UNSPLASH_KEY},
+                timeout=6)
+            if r.status_code == 200:
+                results = r.json().get("results", [])
+                if results:
+                    urls = [results[0]["urls"]["regular"]]
+        except Exception:
+            pass
 
-def get_unsplash_image(query: str) -> str | None:
-    """Fetch image from Unsplash as universal fallback for unknown cars."""
-    if not UNSPLASH_KEY:
-        return None
-    try:
-        r = requests.get(
-            "https://api.unsplash.com/search/photos",
-            params={"query": f"{query} car", "per_page": 1, "client_id": UNSPLASH_KEY},
-            timeout=6
-        )
-        if r.status_code == 200:
-            results = r.json().get("results", [])
-            if results:
-                return results[0]["urls"]["regular"]
-    except Exception:
-        pass
-    return None
+    # Try fetching each URL
+    hdrs = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://en.wikipedia.org/",
+        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+    }
+    for url in urls:
+        try:
+            r = requests.get(url, headers=hdrs, timeout=10)
+            ct = r.headers.get("Content-Type", "")
+            if r.status_code == 200 and "image" in ct:
+                mime = ct.split(";")[0].strip()
+                b64 = base64.b64encode(r.content).decode()
+                return b64, mime
+        except Exception:
+            continue
 
+    # All failed → return SVG placeholder
+    svg = make_placeholder_svg(car_key)
+    b64 = base64.b64encode(svg.encode()).decode()
+    return b64, "image/svg+xml"
 
-def get_image_url(car_key: str) -> str:
-    """Get image: DB first, then Unsplash, then placeholder."""
-    if car_key in CAR_IMAGE_DB:
-        return CAR_IMAGE_DB[car_key]
-    img = get_unsplash_image(car_key)
-    return img or "https://via.placeholder.com/800x450/111111/ff6b00?text=Car+Image+Unavailable"
+def make_placeholder_svg(label: str) -> str:
+    name = label.upper()[:30]
+    return f'''<svg width="800" height="450" xmlns="http://www.w3.org/2000/svg">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#0d0d0d"/><stop offset="100%" stop-color="#1a0800"/>
+</linearGradient></defs>
+<rect width="800" height="450" fill="url(#g)"/>
+<rect x="0" y="0" width="800" height="3" fill="#ff6b00"/>
+<rect x="0" y="447" width="800" height="3" fill="#ff6b00"/>
+<text x="400" y="210" font-family="monospace" font-size="64" fill="#1e1e1e" text-anchor="middle">&#127950;</text>
+<text x="400" y="280" font-family="monospace" font-size="20" font-weight="bold"
+      fill="#ff6b00" text-anchor="middle" letter-spacing="4">{name}</text>
+<text x="400" y="316" font-family="monospace" font-size="11"
+      fill="rgba(255,140,50,0.45)" text-anchor="middle" letter-spacing="3">PREMIUM VEHICLE</text>
+</svg>'''
 
-
-def show_car_images(car_keys: list):
+def render_car_gallery(car_keys: list):
     if not car_keys:
         return
-    st.markdown('<div class="img-section-label">📸 Vehicle Gallery</div>', unsafe_allow_html=True)
+    st.markdown('<div class="car-gallery-label">📸 Vehicle Gallery</div>', unsafe_allow_html=True)
     cols = st.columns(min(3, len(car_keys)))
     for i, key in enumerate(car_keys):
-        img_url = get_image_url(key)
         with cols[i % 3]:
-            st.markdown(f"""
-            <div class="car-image-card">
-                <img src="{img_url}" style="width:100%; display:block; height:180px; object-fit:cover;">
-                <div class="car-image-caption">{key.title()}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            b64, mime = get_car_image_b64(key)
+            data_uri = f"data:{mime};base64,{b64}"
+            st.markdown(f'''
+<div class="car-img-wrapper">
+  <img src="{data_uri}" style="width:100%;height:185px;object-fit:cover;display:block;">
+  <div class="car-img-caption">{key.title()}</div>
+</div>''', unsafe_allow_html=True)
 
 # ==================================================
 # MAIN UI
@@ -551,14 +791,12 @@ st.markdown("""
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
-# Render chat history
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg.get("role") == "assistant" and msg.get("detected_cars"):
-            show_car_images(msg["detected_cars"])
+        if msg["role"] == "assistant" and msg.get("cars"):
+            render_car_gallery(msg["cars"])
 
-# User input
 if prompt := st.chat_input("Ask about any car — specs, comparisons, price, or just a name..."):
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -566,30 +804,9 @@ if prompt := st.chat_input("Ask about any car — specs, comparisons, price, or 
 
     with st.chat_message("assistant"):
         with st.spinner("Analyzing premium vehicle data..."):
-            context = get_car_context()
-            answer = groq_car_chat(prompt, context)
+            answer = groq_car_chat(prompt, get_car_context())
             st.markdown(answer)
-
-            # Detect cars from BOTH the prompt and the AI answer for maximum coverage
-            combined_text = prompt + " " + answer
-            detected_cars = extract_cars_from_text(combined_text)
-
-            if detected_cars:
-                show_car_images(detected_cars)
-            else:
-                # Last resort: try Unsplash with the raw prompt
-                img = get_unsplash_image(prompt)
-                if img:
-                    st.markdown('<div class="img-section-label">📸 Vehicle Gallery</div>', unsafe_allow_html=True)
-                    st.markdown(f"""
-                    <div class="car-image-card" style="max-width:500px; margin:auto;">
-                        <img src="{img}" style="width:100%; display:block; height:220px; object-fit:cover;">
-                        <div class="car-image-caption">{prompt.strip().title()}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            st.session_state.car_messages.append({
-                "role": "assistant",
-                "content": answer,
-                "detected_cars": detected_cars
-            })
+            cars = extract_cars(prompt + " " + answer)
+            if cars:
+                render_car_gallery(cars)
+            st.session_state.car_messages.append({"role": "assistant", "content": answer, "cars": cars})
