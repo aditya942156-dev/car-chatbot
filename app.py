@@ -3,7 +3,7 @@ import requests
 import re
 
 # ==================================================
-# 1. PAGE CONFIG & PREMIUM UI STYLING
+# PAGE CONFIG
 # ==================================================
 st.set_page_config(page_title="EliteDrive AI", page_icon="🏎️", layout="wide")
 
@@ -13,16 +13,8 @@ st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap');
 
-/* =============================================
-   CUSTOM BACKGROUND - YOUR CAR IMAGE
-   ============================================= */
 .stApp {{
-    background: linear-gradient(
-        135deg,
-        rgba(0, 0, 0, 0.82) 0%,
-        rgba(5, 5, 5, 0.70) 40%,
-        rgba(0, 0, 0, 0.88) 100%
-    ),
+    background: linear-gradient(135deg,rgba(0,0,0,0.82) 0%,rgba(5,5,5,0.70) 40%,rgba(0,0,0,0.88) 100%),
     url("data:image/jpeg;base64,{BG_IMAGE_B64}");
     background-size: cover;
     background-position: center 30%;
@@ -32,30 +24,16 @@ st.markdown(f"""
     font-family: 'Rajdhani', sans-serif;
 }}
 
-/* Scanline texture overlay for cinematic effect */
 .stApp::before {{
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.03) 2px,
-        rgba(0,0,0,0.03) 4px
-    );
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
     pointer-events: none;
     z-index: 0;
 }}
 
-/* =============================================
-   HEADER TITLE
-   ============================================= */
-.title-container {{
-    text-align: center;
-    padding: 2.5rem 0 1.5rem 0;
-    position: relative;
-}}
+.title-container {{ text-align: center; padding: 2.5rem 0 1.5rem 0; }}
 
 .elite-title {{
     font-family: 'Orbitron', monospace !important;
@@ -72,14 +50,8 @@ st.markdown(f"""
     margin-bottom: 0.2rem;
 }}
 
-@keyframes shine {{
-    to {{ background-position: 200% center; }}
-}}
-
-@keyframes slideDown {{
-    from {{ opacity: 0; transform: translateY(-30px); }}
-    to {{ opacity: 1; transform: translateY(0); }}
-}}
+@keyframes shine {{ to {{ background-position: 200% center; }} }}
+@keyframes slideDown {{ from {{ opacity: 0; transform: translateY(-30px); }} to {{ opacity: 1; transform: translateY(0); }} }}
 
 .tagline {{
     font-family: 'Rajdhani', sans-serif;
@@ -92,23 +64,15 @@ st.markdown(f"""
     animation: slideDown 1s ease-out 0.2s both;
 }}
 
-/* Decorative line under title */
 .title-line {{
-    width: 120px;
-    height: 2px;
+    width: 120px; height: 2px;
     background: linear-gradient(90deg, transparent, #ff6b00, transparent);
     margin: 1rem auto 0;
     animation: expandLine 1.5s ease-out 0.5s both;
 }}
 
-@keyframes expandLine {{
-    from {{ width: 0; opacity: 0; }}
-    to {{ width: 120px; opacity: 1; }}
-}}
+@keyframes expandLine {{ from {{ width: 0; opacity: 0; }} to {{ width: 120px; opacity: 1; }} }}
 
-/* =============================================
-   CHAT MESSAGES
-   ============================================= */
 .stChatMessage {{
     background: rgba(8, 8, 8, 0.75) !important;
     backdrop-filter: blur(20px) saturate(180%) !important;
@@ -125,19 +89,6 @@ st.markdown(f"""
     box-shadow: 0 8px 30px rgba(255, 107, 53, 0.15), 0 4px 20px rgba(0,0,0,0.5) !important;
 }}
 
-[data-testid="stChatMessage"][data-testid*="assistant"] {{
-    border-left: 3px solid #ff6b00 !important;
-}}
-
-/* Avatar */
-.stChatMessage [data-testid="chatAvatarIcon-assistant"] {{
-    background: linear-gradient(135deg, #ff4500, #ff8c00) !important;
-    border-radius: 4px !important;
-}}
-
-/* =============================================
-   CHAT INPUT - PREMIUM REDESIGN
-   ============================================= */
 [data-testid="stChatInput"] {{
     background: rgba(5, 5, 5, 0.9) !important;
     backdrop-filter: blur(20px) !important;
@@ -157,7 +108,6 @@ st.markdown(f"""
     font-family: 'Rajdhani', sans-serif !important;
     font-size: 1.05rem !important;
     font-weight: 500 !important;
-    letter-spacing: 0.5px;
 }}
 
 [data-testid="stChatInputTextArea"]::placeholder {{
@@ -177,9 +127,6 @@ st.markdown(f"""
     box-shadow: 0 0 20px rgba(255, 107, 0, 0.6) !important;
 }}
 
-/* =============================================
-   SIDEBAR & GENERAL ELEMENTS
-   ============================================= */
 .stMarkdown, .stText, p {{
     color: rgba(255, 255, 255, 0.92) !important;
     font-family: 'Rajdhani', sans-serif !important;
@@ -187,26 +134,10 @@ st.markdown(f"""
     line-height: 1.7;
 }}
 
-/* Spinner */
-.stSpinner > div {{
-    border-top-color: #ff6b00 !important;
-}}
+::-webkit-scrollbar {{ width: 4px; }}
+::-webkit-scrollbar-track {{ background: rgba(0,0,0,0.3); }}
+::-webkit-scrollbar-thumb {{ background: linear-gradient(#ff4500, #ff8c00); border-radius: 2px; }}
 
-/* Scrollbar */
-::-webkit-scrollbar {{
-    width: 4px;
-}}
-::-webkit-scrollbar-track {{
-    background: rgba(0,0,0,0.3);
-}}
-::-webkit-scrollbar-thumb {{
-    background: linear-gradient(#ff4500, #ff8c00);
-    border-radius: 2px;
-}}
-
-/* =============================================
-   CAR IMAGE CARDS
-   ============================================= */
 .car-image-card {{
     border-radius: 4px;
     overflow: hidden;
@@ -214,6 +145,7 @@ st.markdown(f"""
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     border: 1px solid rgba(255,107,53,0.2);
     position: relative;
+    margin-bottom: 12px;
 }}
 
 .car-image-card::after {{
@@ -233,7 +165,7 @@ st.markdown(f"""
 .car-image-caption {{
     color: rgba(255, 200, 100, 0.95);
     font-family: 'Orbitron', monospace;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 700;
     text-align: center;
     padding: 10px 8px;
@@ -242,7 +174,6 @@ st.markdown(f"""
     text-transform: uppercase;
 }}
 
-/* Status badge */
 .status-badge {{
     display: inline-block;
     background: linear-gradient(90deg, rgba(255,69,0,0.15), rgba(255,140,0,0.15));
@@ -256,11 +187,22 @@ st.markdown(f"""
     text-transform: uppercase;
     margin-bottom: 1.5rem;
 }}
+
+.img-section-label {{
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: rgba(255,140,50,0.7);
+    text-transform: uppercase;
+    margin: 12px 0 8px 0;
+    border-left: 2px solid #ff6b00;
+    padding-left: 8px;
+}}
 </style>
 """, unsafe_allow_html=True)
 
 # ==================================================
-# 2. SECRETS
+# SECRETS
 # ==================================================
 GROQ_KEY = st.secrets.get("GROQ_KEY", None)
 UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
@@ -268,33 +210,242 @@ UNSPLASH_KEY = st.secrets.get("UNSPLASH_KEY", None)
 if not GROQ_KEY:
     st.error("❌ Missing GROQ_KEY in Secrets!")
     st.stop()
-if not UNSPLASH_KEY:
-    st.warning("⚠️ UNSPLASH_KEY not set - using fallback images")
 
 # ==================================================
-# 3. CAR CONTEXT
+# CAR IMAGE DATABASE — 111 cars with reliable CardEkho URLs
+# ==================================================
+CAR_IMAGE_DB = {
+    # === TATA ===
+    "tata punch": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Punch/11699/1698222645755/front-left-side-47.jpg",
+    "tata nexon": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Nexon/11377/1698920232534/front-left-side-47.jpg",
+    "tata nexon ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Nexon-EV/9770/1661236578543/front-left-side-47.jpg",
+    "tata harrier": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Harrier/11637/1698819657285/front-left-side-47.jpg",
+    "tata safari": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Safari/9920/1662542736681/front-left-side-47.jpg",
+    "tata altroz": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Altroz/9543/1660042100879/front-left-side-47.jpg",
+    "tata tiago": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Tiago/11616/1696231234218/front-left-side-47.jpg",
+    "tata tigor": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Tigor/9994/1670304082424/front-left-side-47.jpg",
+    "tata curvv": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tata/Curvv/12024/1721635863843/front-left-side-47.jpg",
+    # === MAHINDRA ===
+    "mahindra thar": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Mahindra-Thar/9634/1660659879806/front-left-side-47.jpg",
+    "mahindra thar roxx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Thar-Roxx/12091/1724396095175/front-left-side-47.jpg",
+    "mahindra scorpio n": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Scorpio-N/10630/1664870406699/front-left-side-47.jpg",
+    "mahindra scorpio": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Scorpio/9707/1659585073024/front-left-side-47.jpg",
+    "mahindra xuv700": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV700/10327/1662024283040/front-left-side-47.jpg",
+    "mahindra xuv400": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV400/11037/1665132078643/front-left-side-47.jpg",
+    "mahindra xuv300": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/XUV300/8889/1658132548660/front-left-side-47.jpg",
+    "mahindra bolero": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/Bolero/10068/1659694870459/front-left-side-47.jpg",
+    "mahindra be 6e": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mahindra/BE-6e/12229/1731472852765/front-left-side-47.jpg",
+    # === HYUNDAI ===
+    "hyundai creta": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Creta/11876/1706166084838/front-left-side-47.jpg",
+    "hyundai creta electric": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Creta-Electric/12130/1726744667063/front-left-side-47.jpg",
+    "hyundai verna": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Verna/11575/1697448920394/front-left-side-47.jpg",
+    "hyundai i20": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/i20/10484/1663745340696/front-left-side-47.jpg",
+    "hyundai venue": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Venue/11638/1699248200543/front-left-side-47.jpg",
+    "hyundai tucson": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Tucson/10679/1662024282955/front-left-side-47.jpg",
+    "hyundai ioniq 5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Ioniq-5/10520/1662024286337/front-left-side-47.jpg",
+    "hyundai ioniq 6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Ioniq-6/11456/1684214461985/front-left-side-47.jpg",
+    "hyundai grand i10 nios": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Grand-i10-Nios/9280/1657269048000/front-left-side-47.jpg",
+    "hyundai exter": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Hyundai/Exter/11667/1697691274703/front-left-side-47.jpg",
+    # === KIA ===
+    "kia seltos": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Seltos/11631/1699430893398/front-left-side-47.jpg",
+    "kia sonet": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Sonet/11700/1698565695832/front-left-side-47.jpg",
+    "kia carens": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Carens/10870/1662024286263/front-left-side-47.jpg",
+    "kia ev6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/EV6/10508/1659095183948/front-left-side-47.jpg",
+    "kia sportage": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/Sportage/11232/1668412985261/front-left-side-47.jpg",
+    "kia ev9": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Kia/EV9/11913/1710840074024/front-left-side-47.jpg",
+    # === MARUTI SUZUKI ===
+    "maruti suzuki swift": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Swift/11700/1711354069059/front-left-side-47.jpg",
+    "maruti suzuki baleno": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Baleno/10524/1679028989183/front-left-side-47.jpg",
+    "maruti suzuki grand vitara": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Grand-Vitara/10867/1662024282852/front-left-side-47.jpg",
+    "maruti suzuki brezza": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Brezza/10682/1662024284437/front-left-side-47.jpg",
+    "maruti suzuki dzire": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Dzire/11616/1714989234895/front-left-side-47.jpg",
+    "maruti suzuki alto k10": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Alto-K10/10722/1664453888898/front-left-side-47.jpg",
+    "maruti suzuki ertiga": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Ertiga/11036/1665478488558/front-left-side-47.jpg",
+    "maruti suzuki fronx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Fronx/11594/1695649279413/front-left-side-47.jpg",
+    "maruti suzuki jimny": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Jimny/11489/1686040019718/front-left-side-47.jpg",
+    "maruti suzuki invicto": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maruti/Invicto/11637/1698221275034/front-left-side-47.jpg",
+    # === TOYOTA ===
+    "toyota innova crysta": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Innova-Crysta/11616/1705572461175/front-left-side-47.jpg",
+    "toyota innova hycross": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Innova-HyCross/11340/1675088456208/front-left-side-47.jpg",
+    "toyota fortuner": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Fortuner/10979/1664194870898/front-left-side-47.jpg",
+    "toyota urban cruiser hyryder": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Urban-Cruiser-Hyryder/10867/1672834388855/front-left-side-47.jpg",
+    "toyota camry": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Camry/11494/1686213287985/front-left-side-47.jpg",
+    "toyota corolla": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Corolla/9967/1657269048000/front-left-side-47.jpg",
+    "toyota rav4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/RAV4/9020/1657269048000/front-left-side-47.jpg",
+    "toyota land cruiser": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Toyota/Land-Cruiser/9912/1660042101426/front-left-side-47.jpg",
+    # === HONDA ===
+    "honda city": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/City/11370/1674121073254/front-left-side-47.jpg",
+    "honda amaze": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Amaze/9400/1658729749484/front-left-side-47.jpg",
+    "honda elevate": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Elevate/11685/1697527207476/front-left-side-47.jpg",
+    "honda civic": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/Civic/10729/1662024284388/front-left-side-47.jpg",
+    "honda cr-v": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Honda/CR-V/10920/1664714069561/front-left-side-47.jpg",
+    # === MG ===
+    "mg hector": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Hector/11727/1700296487018/front-left-side-47.jpg",
+    "mg zs ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/ZS-EV/11379/1675003270985/front-left-side-47.jpg",
+    "mg gloster": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Gloster/9775/1660042101138/front-left-side-47.jpg",
+    "mg comet ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Comet-EV/11563/1692955269869/front-left-side-47.jpg",
+    "mg windsor ev": "https://stimg.cardekho.com/images/carexteriorimages/930x620/MG/Windsor-EV/12127/1726552285479/front-left-side-47.jpg",
+    # === JEEP ===
+    "jeep wrangler": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Wrangler/9671/1659507072855/front-left-side-47.jpg",
+    "jeep compass": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Compass/11490/1686126887316/front-left-side-47.jpg",
+    "jeep meridian": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Jeep/Meridian/10755/1662024286118/front-left-side-47.jpg",
+    # === SKODA / VW ===
+    "skoda slavia": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Slavia/10545/1660042101138/front-left-side-47.jpg",
+    "skoda kushaq": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Kushaq/10225/1659422875699/front-left-side-47.jpg",
+    "skoda superb": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Skoda/Superb/11942/1714556466479/front-left-side-47.jpg",
+    "volkswagen taigun": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volkswagen/Taigun/10225/1659422875590/front-left-side-47.jpg",
+    "volkswagen virtus": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volkswagen/Virtus/10545/1660042101040/front-left-side-47.jpg",
+    # === NISSAN ===
+    "nissan magnite": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Nissan/Magnite/9820/1660042101282/front-left-side-47.jpg",
+    "nissan gt-r": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Nissan/GT-R/9489/1657269048000/front-left-side-47.jpg",
+    # === TESLA ===
+    "tesla model 3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-3/11617/1696482067889/front-left-side-47.jpg",
+    "tesla model y": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-Y/10680/1662024284288/front-left-side-47.jpg",
+    "tesla model s": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-S/9019/1657269048000/front-left-side-47.jpg",
+    "tesla model x": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Tesla/Model-X/9020/1657269048000/front-left-side-47.jpg",
+    # === BYD ===
+    "byd seal": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BYD/Seal/11756/1701862899621/front-left-side-47.jpg",
+    "byd atto 3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BYD/Atto-3/11126/1666679469726/front-left-side-47.jpg",
+    # === PORSCHE ===
+    "porsche taycan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Taycan/11588/1695808405218/front-left-side-47.jpg",
+    "porsche 911": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/911/11491/1686039893892/front-left-side-47.jpg",
+    "porsche macan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Macan/11619/1700032484476/front-left-side-47.jpg",
+    "porsche cayenne": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Porsche/Cayenne/9778/1660042101186/front-left-side-47.jpg",
+    # === BMW ===
+    "bmw 3 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/3-Series/11335/1673948465490/front-left-side-47.jpg",
+    "bmw 5 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/5-Series/11823/1706167203196/front-left-side-47.jpg",
+    "bmw 7 series": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/7-Series/11244/1668150005847/front-left-side-47.jpg",
+    "bmw m3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/M3/10426/1657269048000/front-left-side-47.jpg",
+    "bmw m5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/M5/10427/1657269048000/front-left-side-47.jpg",
+    "bmw x5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/X5/11478/1686040012882/front-left-side-47.jpg",
+    "bmw x7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/X7/9905/1660209665516/front-left-side-47.jpg",
+    "bmw i4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/i4/10437/1657269048000/front-left-side-47.jpg",
+    "bmw i7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/BMW/i7/11243/1668150031978/front-left-side-47.jpg",
+    # === MERCEDES ===
+    "mercedes c class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/C-Class/10761/1663314667847/front-left-side-47.jpg",
+    "mercedes e class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/E-Class/11881/1706782861028/front-left-side-47.jpg",
+    "mercedes s class": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/S-Class/10236/1659422875650/front-left-side-47.jpg",
+    "mercedes eqs": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/EQS/10520/1662024286460/front-left-side-47.jpg",
+    "mercedes gle": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/GLE/10688/1662024284534/front-left-side-47.jpg",
+    "mercedes amg gt": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Mercedes-Benz/AMG-GT/9748/1657269048000/front-left-side-47.jpg",
+    # === AUDI ===
+    "audi a4": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/A4/10454/1657269048000/front-left-side-47.jpg",
+    "audi a6": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/A6/10455/1657269048000/front-left-side-47.jpg",
+    "audi q3": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q3/10788/1664011461484/front-left-side-47.jpg",
+    "audi q5": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q5/10789/1664011454183/front-left-side-47.jpg",
+    "audi q7": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/Q7/9967/1661236485745/front-left-side-47.jpg",
+    "audi e-tron gt": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Audi/e-tron-GT/10348/1657269048000/front-left-side-47.jpg",
+    # === LUXURY / SUPERCAR ===
+    "rolls-royce spectre": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Spectre/11605/1696394451985/front-left-side-47.jpg",
+    "rolls-royce ghost": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Ghost/10096/1661064278826/front-left-side-47.jpg",
+    "rolls-royce cullinan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rolls-Royce/Cullinan/9217/1657269048000/front-left-side-47.jpg",
+    "bentley bentayga": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Bentley/Bentayga/9940/1660907673979/front-left-side-47.jpg",
+    "lamborghini huracan": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Huracan/9374/1657269048000/front-left-side-47.jpg",
+    "lamborghini urus": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Urus/9373/1657269048000/front-left-side-47.jpg",
+    "lamborghini revuelto": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lamborghini/Revuelto/11699/1698736856618/front-left-side-47.jpg",
+    "ferrari roma": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ferrari/Roma/9988/1661064278839/front-left-side-47.jpg",
+    "ferrari purosangue": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ferrari/Purosangue/11343/1675261272068/front-left-side-47.jpg",
+    "maserati ghibli": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Maserati/Ghibli/9748/1657269048000/front-left-side-47.jpg",
+    "mclaren 720s": "https://stimg.cardekho.com/images/carexteriorimages/930x620/McLaren/720S/9153/1657269048000/front-left-side-47.jpg",
+    "aston martin dbx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Aston-Martin/DBX/9565/1659507072866/front-left-side-47.jpg",
+    # === LAND ROVER / RANGE ROVER ===
+    "range rover sport": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Range-Rover-Sport/11373/1674537673232/front-left-side-47.jpg",
+    "range rover": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Range-Rover/11244/1668148856498/front-left-side-47.jpg",
+    "land rover defender": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Land-Rover/Defender/9786/1660042101230/front-left-side-47.jpg",
+    # === LEXUS / VOLVO ===
+    "lexus rx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lexus/RX/11587/1695631200548/front-left-side-47.jpg",
+    "lexus lx": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lexus/LX/10697/1662024283900/front-left-side-47.jpg",
+    "volvo xc90": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/XC90/11530/1689578539095/front-left-side-47.jpg",
+    "volvo xc40": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/XC40/9756/1659507072940/front-left-side-47.jpg",
+    "volvo ex90": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Volvo/EX90/11716/1699516833419/front-left-side-47.jpg",
+    # === FORD ===
+    "ford mustang": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ford/Mustang/10010/1661064278906/front-left-side-47.jpg",
+    "ford endeavour": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Ford/Endeavour/9578/1659507073000/front-left-side-47.jpg",
+    # === LUCID / RIVIAN ===
+    "lucid air": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Lucid/Air/10452/1657269048000/front-left-side-47.jpg",
+    "rivian r1t": "https://stimg.cardekho.com/images/carexteriorimages/930x620/Rivian/R1T/9793/1657269048000/front-left-side-47.jpg",
+}
+
+# Short-name aliases — maps single-word / short names to full DB keys
+CAR_ALIASES = {
+    "punch": "tata punch", "nexon": "tata nexon", "nexon ev": "tata nexon ev",
+    "harrier": "tata harrier", "safari": "tata safari", "altroz": "tata altroz",
+    "tiago": "tata tiago", "tigor": "tata tigor", "curvv": "tata curvv",
+    "thar": "mahindra thar", "thar roxx": "mahindra thar roxx",
+    "scorpio n": "mahindra scorpio n", "scorpio": "mahindra scorpio",
+    "xuv700": "mahindra xuv700", "xuv400": "mahindra xuv400",
+    "xuv300": "mahindra xuv300", "bolero": "mahindra bolero",
+    "creta": "hyundai creta", "creta electric": "hyundai creta electric",
+    "verna": "hyundai verna", "i20": "hyundai i20",
+    "venue": "hyundai venue", "tucson": "hyundai tucson",
+    "ioniq 5": "hyundai ioniq 5", "ioniq 6": "hyundai ioniq 6",
+    "exter": "hyundai exter",
+    "seltos": "kia seltos", "sonet": "kia sonet", "carens": "kia carens",
+    "ev6": "kia ev6", "ev9": "kia ev9",
+    "swift": "maruti suzuki swift", "baleno": "maruti suzuki baleno",
+    "grand vitara": "maruti suzuki grand vitara", "brezza": "maruti suzuki brezza",
+    "dzire": "maruti suzuki dzire", "alto k10": "maruti suzuki alto k10",
+    "ertiga": "maruti suzuki ertiga", "fronx": "maruti suzuki fronx",
+    "jimny": "maruti suzuki jimny", "invicto": "maruti suzuki invicto",
+    "innova crysta": "toyota innova crysta", "innova hycross": "toyota innova hycross",
+    "fortuner": "toyota fortuner", "hyryder": "toyota urban cruiser hyryder",
+    "camry": "toyota camry", "land cruiser": "toyota land cruiser",
+    "city": "honda city", "amaze": "honda amaze", "elevate": "honda elevate",
+    "civic": "honda civic",
+    "hector": "mg hector", "zs ev": "mg zs ev", "gloster": "mg gloster",
+    "comet ev": "mg comet ev", "windsor ev": "mg windsor ev",
+    "wrangler": "jeep wrangler", "compass": "jeep compass", "meridian": "jeep meridian",
+    "slavia": "skoda slavia", "kushaq": "skoda kushaq", "superb": "skoda superb",
+    "taigun": "volkswagen taigun", "virtus": "volkswagen virtus",
+    "magnite": "nissan magnite", "gt-r": "nissan gt-r",
+    "model 3": "tesla model 3", "model y": "tesla model y",
+    "model s": "tesla model s", "model x": "tesla model x",
+    "seal": "byd seal", "atto 3": "byd atto 3",
+    "taycan": "porsche taycan", "911": "porsche 911",
+    "macan": "porsche macan", "cayenne": "porsche cayenne",
+    "3 series": "bmw 3 series", "5 series": "bmw 5 series",
+    "7 series": "bmw 7 series", "m3": "bmw m3", "m5": "bmw m5",
+    "x5": "bmw x5", "x7": "bmw x7", "i4": "bmw i4", "i7": "bmw i7",
+    "c class": "mercedes c class", "e class": "mercedes e class",
+    "s class": "mercedes s class", "eqs": "mercedes eqs", "gle": "mercedes gle",
+    "amg gt": "mercedes amg gt",
+    "a4": "audi a4", "a6": "audi a6", "q3": "audi q3",
+    "q5": "audi q5", "q7": "audi q7", "e-tron gt": "audi e-tron gt",
+    "spectre": "rolls-royce spectre", "ghost": "rolls-royce ghost",
+    "cullinan": "rolls-royce cullinan", "bentayga": "bentley bentayga",
+    "huracan": "lamborghini huracan", "urus": "lamborghini urus",
+    "revuelto": "lamborghini revuelto", "roma": "ferrari roma",
+    "purosangue": "ferrari purosangue", "ghibli": "maserati ghibli",
+    "720s": "mclaren 720s", "dbx": "aston martin dbx",
+    "range rover sport": "range rover sport", "range rover": "range rover",
+    "defender": "land rover defender",
+    "rx": "lexus rx", "lx": "lexus lx",
+    "xc90": "volvo xc90", "xc40": "volvo xc40", "ex90": "volvo ex90",
+    "mustang": "ford mustang", "endeavour": "ford endeavour",
+    "lucid air": "lucid air", "r1t": "rivian r1t",
+}
+
+# ==================================================
+# CAR CONTEXT
 # ==================================================
 def get_car_context():
     return """
     Current Trending Cars (2024-2025):
-    - Electric: Tesla Model 3 Highland, Hyundai Ioniq 6, BYD Seal, Lucid Air
-    - Performance: Porsche Taycan, BMW M5, Audi RS e-tron GT
-    - Luxury: Mercedes-Maybach EQS, Rolls-Royce Spectre, Bentley Bentayga
-    - SUVs: Range Rover Sport, Lexus RX, Volvo EX90
-    - Budget: Toyota Corolla Hybrid, Honda Civic, Hyundai Kona Electric
-    - Indian Market: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift
+    - Electric: Tesla Model 3, Hyundai Ioniq 6, BYD Seal, Lucid Air, Tata Nexon EV, Hyundai Creta Electric, MG Windsor EV
+    - Performance: Porsche Taycan, BMW M5, Audi RS e-tron GT, Lamborghini Revuelto
+    - Luxury: Mercedes-Maybach EQS, Rolls-Royce Spectre, Bentley Bentayga, Ferrari Purosangue
+    - SUVs: Range Rover Sport, Lexus RX, Volvo EX90, Mahindra XUV700
+    - Budget/Mainstream: Toyota Corolla Hybrid, Honda Civic, Hyundai Kona Electric
+    - Indian Market Stars: Tata Punch, Mahindra Thar, Hyundai Creta, Kia Seltos, Maruti Suzuki Swift, Maruti Suzuki Fronx
     Market Trends: 40% EV adoption in premium segments, 25% price premium for performance EVs
     """
 
 # ==================================================
-# 4. GROQ API CALL
+# GROQ API
 # ==================================================
 def groq_car_chat(prompt: str, context: str) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {GROQ_KEY}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.1-8b-instant",
         "messages": [
@@ -312,103 +463,79 @@ def groq_car_chat(prompt: str, context: str) -> str:
     return f"Error: {resp.text}"
 
 # ==================================================
-# 5. IMAGE HANDLING
+# SMART CAR DETECTION — DB match + alias + Unsplash fallback
 # ==================================================
-FALLBACK_IMAGE_MAP = {
-    "tesla model 3": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-    "tesla model 3 highland": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Tesla_Model_3_%282020%29_front_left.jpg/800px-Tesla_Model_3_%282020%29_front_left.jpg",
-    "hyundai ioniq 6": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/2022_Hyundai_Ioniq_6_SEL.jpg/800px-2022_Hyundai_Ioniq_6_SEL.jpg",
-    "byd seal": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/BYD_Seal_%282022%29_front_left.jpg/800px-BYD_Seal_%282022%29_front_left.jpg",
-    "toyota rav4 hybrid": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/2022_Toyota_RAV4_Hybrid_XLE.jpg/800px-2022_Toyota_RAV4_Hybrid_XLE.jpg",
-    "honda cr-v": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/2022_Honda_CR-V_Touring.jpg/800px-2022_Honda_CR-V_Touring.jpg",
-    "kia sportage": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/2022_Kia_Sportage_SX_Prestige.jpg/800px-2022_Kia_Sportage_SX_Prestige.jpg",
-    "bmw i7": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/2023_BMW_i7_xDrive60.jpg/800px-2023_BMW_i7_xDrive60.jpg",
-    "mercedes eqs": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/2022_Mercedes-Benz_EQS_580_4MATIC.jpg/800px-2022_Mercedes-Benz_EQS_580_4MATIC.jpg",
-    "audi e-tron gt": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/2022_Audi_e-tron_GT_quattro.jpg/800px-2022_Audi_e-tron_GT_quattro.jpg",
-    "porsche taycan": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2021_Porsche_Taycan_4S.jpg/800px-2021_Porsche_Taycan_4S.jpg",
-    "lucid air": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Lucid_Air_Dream_Edition.jpg/800px-Lucid_Air_Dream_Edition.jpg",
-    "rolls-royce spectre": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Rolls-Royce_Spectre_2023.jpg/800px-Rolls-Royce_Spectre_2023.jpg",
-    "range rover sport": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/2022_Range_Rover_Sport_Autobiography.jpg/800px-2022_Range_Rover_Sport_Autobiography.jpg",
-    "lexus rx": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/2023_Lexus_RX_350h_F_Sport.jpg/800px-2023_Lexus_RX_350h_F_Sport.jpg",
-    "volvo ex90": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Volvo_EX90_2024.jpg/800px-Volvo_EX90_2024.jpg",
-    "tata punch": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Tata_Punch.jpg/800px-Tata_Punch.jpg",
-    "tata nexon": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Tata_Nexon_EV.jpg/800px-Tata_Nexon_EV.jpg",
-    "tata harrier": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Tata_Harrier.jpg/800px-Tata_Harrier.jpg",
-    "tata safari": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Tata_Safari.jpg/800px-Tata_Safari.jpg",
-    "mahindra thar": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Mahindra_Thar.jpg/800px-Mahindra_Thar.jpg",
-    "mahindra scorpio": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Mahindra_Scorpio.jpg/800px-Mahindra_Scorpio.jpg",
-    "mahindra xuv700": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Mahindra_XUV700.jpg/800px-Mahindra_XUV700.jpg",
-    "hyundai creta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Hyundai_Creta.jpg/800px-Hyundai_Creta.jpg",
-    "kia seltos": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Kia_Seltos.jpg/800px-Kia_Seltos.jpg",
-    "maruti suzuki swift": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Maruti_Suzuki_Swift.jpg/800px-Maruti_Suzuki_Swift.jpg",
-    "maruti suzuki baleno": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5b/Maruti_Suzuki_Baleno.jpg/800px-Maruti_Suzuki_Baleno.jpg",
-    "maruti suzuki grand vitara": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Maruti_Suzuki_Grand_Vitara.jpg/800px-Maruti_Suzuki_Grand_Vitara.jpg",
-    "toyota innova crysta": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Toyota_Innova_Crysta.jpg/800px-Toyota_Innova_Crysta.jpg",
-    "honda city": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Honda_City.jpg/800px-Honda_City.jpg",
-    "hyundai verna": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Hyundai_Verna.jpg/800px-Hyundai_Verna.jpg",
-    "hyundai i20": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Hyundai_i20.jpg/800px-Hyundai_i20.jpg",
-}
+def extract_cars_from_text(text: str) -> list:
+    """
+    Detect car names from ANY text (prompt or AI response).
+    Strategy: longest-match first from DB keys + aliases, so
+    'mahindra scorpio n' beats 'mahindra scorpio'.
+    """
+    lowered = text.lower()
+    found_keys = set()
+    found_display = {}  # canonical_key -> display_name
 
-def _extract_car_names_from_prompt(prompt: str):
-    lowered = prompt.lower()
-    found = []
-    for key in FALLBACK_IMAGE_MAP:
+    # Sort by length descending so longer names match first
+    all_keys = sorted(list(CAR_IMAGE_DB.keys()) + list(CAR_ALIASES.keys()), key=len, reverse=True)
+
+    for key in all_keys:
         pattern = r'\b' + re.escape(key) + r'\b'
-        if re.search(pattern, lowered) and key not in found:
-            found.append(key)
-    if not found:
-        indian_car_keywords = {
-            "punch": "tata punch", "nexon": "tata nexon", "harrier": "tata harrier",
-            "safari": "tata safari", "thar": "mahindra thar", "scorpio": "mahindra scorpio",
-            "xuv700": "mahindra xuv700", "creta": "hyundai creta", "seltos": "kia seltos",
-            "swift": "maruti suzuki swift", "baleno": "maruti suzuki baleno",
-            "grand vitara": "maruti suzuki grand vitara", "innova crysta": "toyota innova crysta",
-            "city": "honda city", "verna": "hyundai verna", "i20": "hyundai i20",
-        }
-        for keyword, full_name in indian_car_keywords.items():
-            pattern = r'\b' + re.escape(keyword) + r'\b'
-            if re.search(pattern, lowered) and full_name not in found:
-                found.append(full_name)
-    return found
+        if re.search(pattern, lowered):
+            # Resolve alias to canonical key
+            canonical = CAR_ALIASES.get(key, key)
+            if canonical in CAR_IMAGE_DB and canonical not in found_keys:
+                found_keys.add(canonical)
+                found_display[canonical] = canonical.title()
+                # Mask matched region to avoid sub-matches
+                lowered = re.sub(pattern, ' ' * len(key), lowered)
 
-def get_unsplash_image_url(query: str):
+    return list(found_keys)
+
+
+def get_unsplash_image(query: str) -> str | None:
+    """Fetch image from Unsplash as universal fallback for unknown cars."""
     if not UNSPLASH_KEY:
         return None
-    url = "https://api.unsplash.com/search/photos"
-    params = {"query": f"{query} car", "per_page": 1, "client_id": UNSPLASH_KEY}
     try:
-        r = requests.get(url, params=params, timeout=8)
-        if r.status_code != 200:
-            return None
-        results = r.json().get("results", [])
-        if results:
-            return results[0]["urls"]["regular"]
+        r = requests.get(
+            "https://api.unsplash.com/search/photos",
+            params={"query": f"{query} car", "per_page": 1, "client_id": UNSPLASH_KEY},
+            timeout=6
+        )
+        if r.status_code == 200:
+            results = r.json().get("results", [])
+            if results:
+                return results[0]["urls"]["regular"]
     except Exception:
         pass
     return None
 
-def get_image_url_for_model(model_key: str) -> str:
-    unsplash_url = get_unsplash_image_url(model_key)
-    if unsplash_url:
-        return unsplash_url
-    return FALLBACK_IMAGE_MAP.get(model_key, "https://via.placeholder.com/400x225?text=Premium+Car")
 
-def show_car_images(model_keys):
-    if not model_keys:
+def get_image_url(car_key: str) -> str:
+    """Get image: DB first, then Unsplash, then placeholder."""
+    if car_key in CAR_IMAGE_DB:
+        return CAR_IMAGE_DB[car_key]
+    img = get_unsplash_image(car_key)
+    return img or "https://via.placeholder.com/800x450/111111/ff6b00?text=Car+Image+Unavailable"
+
+
+def show_car_images(car_keys: list):
+    if not car_keys:
         return
-    cols = st.columns(min(3, len(model_keys)))
-    for i, key in enumerate(model_keys):
-        img_url = get_image_url_for_model(key)
+    st.markdown('<div class="img-section-label">📸 Vehicle Gallery</div>', unsafe_allow_html=True)
+    cols = st.columns(min(3, len(car_keys)))
+    for i, key in enumerate(car_keys):
+        img_url = get_image_url(key)
         with cols[i % 3]:
             st.markdown(f"""
             <div class="car-image-card">
-                <img src="{img_url}" style="width:100%; display:block;">
+                <img src="{img_url}" style="width:100%; display:block; height:180px; object-fit:cover;">
                 <div class="car-image-caption">{key.title()}</div>
             </div>
             """, unsafe_allow_html=True)
 
 # ==================================================
-# 6. MAIN UI
+# MAIN UI
 # ==================================================
 st.markdown("""
 <div class="title-container">
@@ -424,26 +551,45 @@ st.markdown("""
 if "car_messages" not in st.session_state:
     st.session_state.car_messages = []
 
+# Render chat history
 for msg in st.session_state.car_messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
-        if msg.get("role") == "assistant" and msg.get("user_car_keys"):
-            show_car_images(msg["user_car_keys"])
+        if msg.get("role") == "assistant" and msg.get("detected_cars"):
+            show_car_images(msg["detected_cars"])
 
-if prompt := st.chat_input("Ask about specs, comparisons, or recommendations..."):
-    user_car_keys = _extract_car_names_from_prompt(prompt)
+# User input
+if prompt := st.chat_input("Ask about any car — specs, comparisons, price, or just a name..."):
     st.session_state.car_messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
+
     with st.chat_message("assistant"):
         with st.spinner("Analyzing premium vehicle data..."):
             context = get_car_context()
             answer = groq_car_chat(prompt, context)
             st.markdown(answer)
-            if user_car_keys:
-                show_car_images(user_car_keys)
+
+            # Detect cars from BOTH the prompt and the AI answer for maximum coverage
+            combined_text = prompt + " " + answer
+            detected_cars = extract_cars_from_text(combined_text)
+
+            if detected_cars:
+                show_car_images(detected_cars)
             else:
-                st.caption("_No specific car models detected in your question_")
-            st.session_state.car_messages.append(
-                {"role": "assistant", "content": answer, "user_car_keys": user_car_keys}
-            )
+                # Last resort: try Unsplash with the raw prompt
+                img = get_unsplash_image(prompt)
+                if img:
+                    st.markdown('<div class="img-section-label">📸 Vehicle Gallery</div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="car-image-card" style="max-width:500px; margin:auto;">
+                        <img src="{img}" style="width:100%; display:block; height:220px; object-fit:cover;">
+                        <div class="car-image-caption">{prompt.strip().title()}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.session_state.car_messages.append({
+                "role": "assistant",
+                "content": answer,
+                "detected_cars": detected_cars
+            })
